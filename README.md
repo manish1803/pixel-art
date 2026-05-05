@@ -158,19 +158,22 @@ The production bundle will be output to the `dist/` folder.
 Contributions, issues and feature requests are welcome!
 
 1. Fork the repository
-2. Create your feature branch: `git checkout -b feat/your-feature`
-3. Commit your changes: `git commit -m 'feat: add some feature'`
-4. Push to the branch: `git push origin feat/your-feature`
+2. Create your feature branch: 
+```
+git checkout -b feat/your-feature
+```
+3. Commit your changes:
+```
+git commit -m 'feat: add some feature'
+```
+4. Push to the branch:
+```
+git push origin feat/your-feature
+```
 5. Open a Pull Request
 
 ---
 
-## 👤 Author
-
-**Manish**
-- GitHub: [@manish1803](https://github.com/Manish1803)
-
----
 
 ## 📝 License
 
