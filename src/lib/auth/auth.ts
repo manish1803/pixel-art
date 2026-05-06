@@ -8,9 +8,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google,
   ],
   callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
     session({ session, token }) {
-      if (token?.sub) {
-        session.user.id = token.sub;
+      // Prioritize email as the most stable identifier across sign-ins
+      const stableId = token.email || token.sub;
+      if (stableId) {
+        session.user.id = stableId as string;
       }
       return session;
     },

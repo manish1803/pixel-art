@@ -216,7 +216,7 @@ export function Dashboard({
 
           <UserMenu
             darkMode={darkMode}
-            onSignIn={() => router.push('/auth/signin?callbackUrl=/')}
+            onSignIn={() => router.push('/auth/signin?callbackUrl=/projects')}
           />
         </div>
       </nav>
@@ -228,7 +228,7 @@ export function Dashboard({
             ☁ Sign in to sync your projects across devices
           </span>
           <button
-            onClick={() => router.push('/auth/signin?callbackUrl=/')}
+            onClick={() => router.push('/auth/signin?callbackUrl=/projects')}
             className="text-[9px] font-bold uppercase tracking-widest underline opacity-40 hover:opacity-100 transition-opacity text-foreground"
           >
             Sign In

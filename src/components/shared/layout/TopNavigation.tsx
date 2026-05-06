@@ -71,7 +71,7 @@ export function TopNavigation({
         </button>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-6 ml-12">
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Dark Mode</span>
           <button

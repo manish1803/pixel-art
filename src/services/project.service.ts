@@ -25,6 +25,16 @@ export async function getProjectById(userId: string, id: string) {
   return doc ? serialize(doc) : null;
 }
 
+export async function getProject(id: string) {
+  await connectToDatabase();
+  try {
+    const doc = await Project.findOne({ _id: id });
+    return doc ? serialize(doc) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function createProject(userId: string, data: CreateProjectInput & { folderId?: string | null }) {
   await connectToDatabase();
   const doc = await Project.create({
