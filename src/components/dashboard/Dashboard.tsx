@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { ProjectCard } from './ProjectCard';
@@ -7,6 +8,9 @@ interface Project {
   name: string;
   date: string;
   preview: string;
+  pixels: { [key: string]: string };
+  gridSize: number;
+  frames: { id: number; pixels: { [key: string]: string } }[];
   isFavourite: boolean;
   isDraft: boolean;
   [key: string]: any;

@@ -1,4 +1,5 @@
-import { Coffee, LayoutDashboard } from 'lucide-react';
+'use client';
+import { Coffee } from 'lucide-react';
 
 interface TopNavigationProps {
   mode: 'draw' | 'animate';
@@ -16,24 +17,19 @@ export function TopNavigation({ mode, setMode, darkMode, setDarkMode, onBackToDa
 
   return (
     <nav className="h-16 border-b flex items-center justify-between px-8" style={{ fontFamily: "'Geist Mono', monospace", backgroundColor: bgColor, borderColor }}>
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBackToDashboard}
-          className="flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity"
-          title="Back to Dashboard"
-        >
-          <LayoutDashboard className="w-4 h-4" style={{ color: textColor }} />
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="grid grid-cols-2 gap-0.5">
-            <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
-            <div className="w-2.5 h-2.5 bg-[#00FF41]" />
-            <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
-            <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
-          </div>
-          <span className="text-lg font-bold tracking-tighter" style={{ color: textColor }}>pixel</span>
+      <button
+        onClick={onBackToDashboard}
+        className="flex items-center gap-3 hover:opacity-70 transition-opacity"
+        title="Back to Dashboard"
+      >
+        <div className="grid grid-cols-2 gap-0.5">
+          <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
+          <div className="w-2.5 h-2.5 bg-[#00FF41]" />
+          <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
+          <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
         </div>
-      </div>
+        <span className="text-lg font-bold tracking-tighter" style={{ color: textColor }}>pixel</span>
+      </button>
 
       <div className="flex items-center gap-2 border p-1" style={{ borderColor }}>
         <button

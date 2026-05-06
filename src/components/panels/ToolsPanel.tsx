@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import { ColorPicker } from '../common/ColorPicker';
 import { ShortcutsList } from '../common/ShortcutsList';

@@ -1,3 +1,4 @@
+'use client';
 interface Frame {
   id: number;
   pixels: { [key: string]: string };

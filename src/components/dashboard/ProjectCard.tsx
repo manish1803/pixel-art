@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import { Star, Pencil, Trash2, FileText } from 'lucide-react';
 
@@ -6,6 +7,9 @@ interface Project {
   name: string;
   date: string;
   preview: string;
+  pixels: { [key: string]: string };
+  gridSize: number;
+  frames: { id: number; pixels: { [key: string]: string } }[];
   isFavourite: boolean;
   isDraft: boolean;
   [key: string]: any;

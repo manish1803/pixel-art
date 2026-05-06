@@ -1,3 +1,4 @@
+'use client';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface CustomNumberInputProps {
