@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { TopNavigation } from '../../src/components/layout/TopNavigation';
 import { ToolsPanel } from '../../src/components/panels/ToolsPanel';
 import { CanvasArea } from '../../src/components/canvas/CanvasArea';
@@ -16,6 +17,8 @@ function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectId = searchParams.get('id');
+  const { data: session } = useSession();
+  const isAuthenticated = !!session?.user?.id;
 
   const [mode, setMode] = useState<'draw' | 'animate'>('draw');
   const [darkMode, setDarkMode] = useState(false);
@@ -42,16 +45,44 @@ function EditorContent() {
     if (!projectId) return;
     const stored = sessionStorage.getItem('open-project');
     if (!stored) return;
-    const project = JSON.parse(stored);
-    if (project.id === projectId) {
-      setCurrentProjectId(project.id);
-      setProjectName(project.name);
-      setGridSize(project.gridSize || 32);
-      updatePixelsWithHistory(project.pixels || {});
-      if (project.frames?.length) setFrames(project.frames);
-      sessionStorage.removeItem('open-project');
+    try {
+      const project = JSON.parse(stored);
+      if (project.id === projectId) {
+        setCurrentProjectId(project.id);
+        setProjectName(project.name);
+        setGridSize(project.gridSize || 32);
+        updatePixelsWithHistory(project.pixels || {});
+        if (project.frames?.length) setFrames(project.frames);
+        sessionStorage.removeItem('open-project');
+      }
+    } catch (e) {
+      console.error('Failed to parse project from sessionStorage', e);
     }
-  }, [projectId]);
+  }, [projectId, updatePixelsWithHistory]);
+
+  // Fetch project from API if missing from sessionStorage (e.g. on refresh)
+  useEffect(() => {
+    if (!projectId || currentProjectId || !isAuthenticated) return;
+
+    const fetchProject = async () => {
+      try {
+        const res = await fetch(`/api/projects/${projectId}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          const project = data.data;
+          setCurrentProjectId(project.id);
+          setProjectName(project.name);
+          setGridSize(project.gridSize || 32);
+          updatePixelsWithHistory(project.pixels || {});
+          if (project.frames?.length) setFrames(project.frames);
+        }
+      } catch (e) {
+        console.error('Failed to fetch project from API', e);
+      }
+    };
+
+    fetchProject();
+  }, [projectId, currentProjectId, isAuthenticated, updatePixelsWithHistory]);
 
   const syncToLocalStorage = useCallback((updater: (prev: any[]) => any[]) => {
     const saved = localStorage.getItem('pixel-art-projects');
@@ -76,7 +107,7 @@ function EditorContent() {
     setFrames(prev => [...prev, { id: prev.length + 1, pixels: {} }]);
   }, []);
 
-  const handleSaveProject = useCallback((preview: string) => {
+  const handleSaveProject = useCallback(async (preview: string) => {
     const projectData = {
       name: projectName || 'Untitled Project',
       date: new Date().toLocaleDateString(),
@@ -88,22 +119,44 @@ function EditorContent() {
       isDraft: false,
     };
 
-    syncToLocalStorage(prev => {
+    if (isAuthenticated) {
+      // ── Cloud save (MongoDB) ──────────────────────────────────────
       if (currentProjectId) {
-        return prev.map(p => p.id === currentProjectId ? { ...p, ...projectData } : p);
+        await fetch(`/api/projects/${currentProjectId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(projectData),
+        });
       } else {
-        const newId = Date.now().toString();
-        setCurrentProjectId(newId);
-        return [{ id: newId, ...projectData }, ...prev];
+        const res = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(projectData),
+        });
+        const data = await res.json();
+        if (data.success) setCurrentProjectId(data.data.id);
       }
-    });
-  }, [projectName, pixels, gridSize, frames, currentProjectId, syncToLocalStorage]);
+    } else {
+      // ── Guest save (localStorage) ─────────────────────────────────
+      syncToLocalStorage((prev) => {
+        if (currentProjectId) {
+          return prev.map((p) => (p.id === currentProjectId ? { ...p, ...projectData } : p));
+        } else {
+          const newId = Date.now().toString();
+          setCurrentProjectId(newId);
+          return [{ id: newId, ...projectData }, ...prev];
+        }
+      });
+    }
+  }, [isAuthenticated, projectName, pixels, gridSize, frames, currentProjectId, syncToLocalStorage]);
 
   const performSave = useCallback(async () => {
     const currentPixels = mode === 'draw' ? pixels : frames[currentFrame]?.pixels || {};
-    const preview = await generatePNG(currentPixels, gridSize, 600, darkMode ? '#000000' : '#ffffff');
+    // Use 200px for cloud storage efficiency; 600px is wasteful for previews
+    const previewSize = isAuthenticated ? 200 : 600;
+    const preview = await generatePNG(currentPixels, gridSize, previewSize, darkMode ? '#000000' : '#ffffff');
     handleSaveProject(preview);
-  }, [mode, pixels, frames, currentFrame, gridSize, darkMode, handleSaveProject]);
+  }, [mode, pixels, frames, currentFrame, gridSize, darkMode, isAuthenticated, handleSaveProject]);
 
   const performClear = useCallback(() => {
     if (mode === 'draw') {

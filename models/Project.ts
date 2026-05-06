@@ -1,0 +1,52 @@
+import mongoose, { Schema, Document, Model } from 'mongoose';
+
+// ----- Frame sub-document -----
+interface IFrame {
+  id: number;
+  pixels: Map<string, string>;
+}
+
+const FrameSchema = new Schema<IFrame>(
+  {
+    id: { type: Number, required: true },
+    pixels: { type: Map, of: String, default: {} },
+  },
+  { _id: false }
+);
+
+// ----- Project document -----
+export interface IProject extends Document {
+  userId: string;
+  name: string;
+  date: string;
+  preview: string;
+  pixels: Map<string, string>;
+  gridSize: number;
+  frames: IFrame[];
+  isFavourite: boolean;
+  isDraft: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ProjectSchema = new Schema<IProject>(
+  {
+    userId:      { type: String, required: true },
+    name:        { type: String, default: 'Untitled Project' },
+    date:        { type: String, default: '' },
+    preview:     { type: String, default: '' },
+    pixels:      { type: Map, of: String, default: {} },
+    gridSize:    { type: Number, default: 32 },
+    frames:      { type: [FrameSchema], default: [] },
+    isFavourite: { type: Boolean, default: false },
+    isDraft:     { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+// Index for fast per-user queries
+ProjectSchema.index({ userId: 1, createdAt: -1 });
+
+// Prevent model re-compilation during Next.js HMR
+export const Project: Model<IProject> =
+  mongoose.models.Project ?? mongoose.model<IProject>('Project', ProjectSchema);

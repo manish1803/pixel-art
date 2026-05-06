@@ -23,6 +23,7 @@ interface DashboardProps {
   darkMode: boolean;
   setDarkMode: (v: boolean) => void;
   projects: Project[];
+  loading?: boolean;
   onNewProject: () => void;
   onOpenProject: (project: Project) => void;
   onToggleFavourite: (id: string) => void;
@@ -104,6 +105,7 @@ export function Dashboard({
   darkMode,
   setDarkMode,
   projects,
+  loading = false,
   onNewProject,
   onOpenProject,
   onToggleFavourite,
@@ -194,46 +196,54 @@ export function Dashboard({
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-10">
-        {/* Favourites */}
-        <Section
-          title="Favourites"
-          icon="★"
-          projects={favourites}
-          darkMode={darkMode}
-          emptyLabel="Star a project to pin it here"
-          onOpenProject={onOpenProject}
-          onToggleFavourite={onToggleFavourite}
-          onToggleDraft={onToggleDraft}
-          onDeleteProject={onDeleteProject}
-        />
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-[10px] font-bold uppercase tracking-widest opacity-20" style={{ color: textColor }}>
+            Loading projects...
+          </span>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-10">
+          {/* Favourites */}
+          <Section
+            title="Favourites"
+            icon="★"
+            projects={favourites}
+            darkMode={darkMode}
+            emptyLabel="Star a project to pin it here"
+            onOpenProject={onOpenProject}
+            onToggleFavourite={onToggleFavourite}
+            onToggleDraft={onToggleDraft}
+            onDeleteProject={onDeleteProject}
+          />
 
-        {/* Drafts */}
-        <Section
-          title="Drafts"
-          icon="📄"
-          projects={drafts}
-          darkMode={darkMode}
-          emptyLabel="No drafts yet"
-          onOpenProject={onOpenProject}
-          onToggleFavourite={onToggleFavourite}
-          onToggleDraft={onToggleDraft}
-          onDeleteProject={onDeleteProject}
-        />
+          {/* Drafts */}
+          <Section
+            title="Drafts"
+            icon="📄"
+            projects={drafts}
+            darkMode={darkMode}
+            emptyLabel="No drafts yet"
+            onOpenProject={onOpenProject}
+            onToggleFavourite={onToggleFavourite}
+            onToggleDraft={onToggleDraft}
+            onDeleteProject={onDeleteProject}
+          />
 
-        {/* All Projects */}
-        <Section
-          title="All Projects"
-          icon="📁"
-          projects={all}
-          darkMode={darkMode}
-          emptyLabel="No saved projects yet — start drawing!"
-          onOpenProject={onOpenProject}
-          onToggleFavourite={onToggleFavourite}
-          onToggleDraft={onToggleDraft}
-          onDeleteProject={onDeleteProject}
-        />
-      </div>
+          {/* All Projects */}
+          <Section
+            title="All Projects"
+            icon="📁"
+            projects={all}
+            darkMode={darkMode}
+            emptyLabel="No saved projects yet — start drawing!"
+            onOpenProject={onOpenProject}
+            onToggleFavourite={onToggleFavourite}
+            onToggleDraft={onToggleDraft}
+            onDeleteProject={onDeleteProject}
+          />
+        </div>
+      )}
     </div>
   );
 }
