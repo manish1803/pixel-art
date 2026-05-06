@@ -20,7 +20,6 @@ interface CanvasAreaProps {
   mode: 'draw' | 'animate';
   darkMode: boolean;
   onNewProject: () => void;
-  onSaveProject: (previewUrl: string) => void;
 }
 
 export const CanvasArea = React.memo(function CanvasArea({
@@ -40,7 +39,6 @@ export const CanvasArea = React.memo(function CanvasArea({
   mode,
   darkMode,
   onNewProject,
-  onSaveProject,
 }: CanvasAreaProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -210,12 +208,6 @@ export const CanvasArea = React.memo(function CanvasArea({
     setExportOpen(false);
   };
 
-  const handleSave = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const preview = canvas.toDataURL('image/png');
-    onSaveProject(preview);
-  };
 
   const getCursor = () => {
     if (tool === 'picker') {
@@ -332,13 +324,7 @@ export const CanvasArea = React.memo(function CanvasArea({
             )}
           </div>
 
-          <button
-            onClick={handleSave}
-            className="px-8 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-transform active:scale-95"
-            style={{ backgroundColor: darkMode ? 'white' : 'black', color: darkMode ? 'black' : 'white' }}
-          >
-            Save
-          </button>
+
         </div>
       </div>
     </div>

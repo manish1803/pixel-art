@@ -9,6 +9,7 @@ export const FrameSchema = z.object({
 // ----- Create / Update -----
 export const CreateProjectSchema = z.object({
   name: z.string().min(1).max(100).default('Untitled Project'),
+  folderId: z.string().nullable().optional(),
   date: z.string().optional(),
   preview: z.string().default(''),
   pixels: z.record(z.string(), z.string()).default({}),

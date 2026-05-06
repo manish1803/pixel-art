@@ -39,6 +39,7 @@ function EditorContent() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [frames, setFrames] = useState([{ id: 1, pixels: {} as { [key: string]: string } }]);
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   // Load project from sessionStorage when navigating from dashboard
   useEffect(() => {
@@ -107,7 +108,9 @@ function EditorContent() {
     setFrames(prev => [...prev, { id: prev.length + 1, pixels: {} }]);
   }, []);
 
-  const handleSaveProject = useCallback(async (preview: string) => {
+  const handleSaveProject = useCallback(async (preview: string, metadata: Partial<any> = {}) => {
+    // If we're updating an existing project, we should preserve its current metadata
+    // unless explicitly overridden.
     const projectData = {
       name: projectName || 'Untitled Project',
       date: new Date().toLocaleDateString(),
@@ -116,7 +119,8 @@ function EditorContent() {
       gridSize,
       frames,
       isFavourite: false,
-      isDraft: false,
+      isDraft: true, // Default to draft for auto-saves
+      ...metadata
     };
 
     if (isAuthenticated) {
@@ -134,7 +138,11 @@ function EditorContent() {
           body: JSON.stringify(projectData),
         });
         const data = await res.json();
-        if (data.success) setCurrentProjectId(data.data.id);
+        if (data.success) {
+          setCurrentProjectId(data.data.id);
+          // If it's a new project, we might want to update the URL without refreshing
+          window.history.replaceState(null, '', `/editor?id=${data.data.id}`);
+        }
       }
     } else {
       // ── Guest save (localStorage) ─────────────────────────────────
@@ -144,19 +152,40 @@ function EditorContent() {
         } else {
           const newId = Date.now().toString();
           setCurrentProjectId(newId);
+          window.history.replaceState(null, '', `/editor?id=${newId}`);
           return [{ id: newId, ...projectData }, ...prev];
         }
       });
     }
   }, [isAuthenticated, projectName, pixels, gridSize, frames, currentProjectId, syncToLocalStorage]);
 
-  const performSave = useCallback(async () => {
-    const currentPixels = mode === 'draw' ? pixels : frames[currentFrame]?.pixels || {};
-    // Use 200px for cloud storage efficiency; 600px is wasteful for previews
-    const previewSize = isAuthenticated ? 200 : 600;
-    const preview = await generatePNG(currentPixels, gridSize, previewSize, darkMode ? '#000000' : '#ffffff');
-    handleSaveProject(preview);
+  const performSave = useCallback(async (metadata: Partial<any> = {}) => {
+    setSaving(true);
+    try {
+      const currentPixels = mode === 'draw' ? pixels : frames[currentFrame]?.pixels || {};
+      // Use 200px for cloud storage efficiency; 600px is wasteful for previews
+      const previewSize = isAuthenticated ? 200 : 600;
+      const preview = await generatePNG(currentPixels, gridSize, previewSize, darkMode ? '#000000' : '#ffffff');
+      await handleSaveProject(preview, metadata);
+    } finally {
+      // Small delay so the indicator doesn't just flicker
+      setTimeout(() => setSaving(false), 500);
+    }
   }, [mode, pixels, frames, currentFrame, gridSize, darkMode, isAuthenticated, handleSaveProject]);
+
+  // ── Auto-save logic ────────────────────────────────────────────────
+  useEffect(() => {
+    // Don't auto-save if no changes have been made yet (e.g. empty new project)
+    const hasPixels = Object.keys(pixels).length > 0;
+    const hasFrames = frames.some(f => Object.keys(f.pixels).length > 0);
+    if (!hasPixels && !hasFrames && !projectName) return;
+
+    const timer = setTimeout(() => {
+      performSave({ isDraft: true });
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timer);
+  }, [pixels, frames, projectName, gridSize, performSave]);
 
   const performClear = useCallback(() => {
     if (mode === 'draw') {
@@ -200,6 +229,17 @@ function EditorContent() {
         onBackToDashboard={() => router.push('/')}
       />
 
+      {/* Auto-save status indicator */}
+      <div className="absolute top-[18px] left-1/2 -translate-x-1/2 pointer-events-none z-[60]">
+        <div className={`px-4 py-1.5 border transition-all duration-500 flex items-center gap-2 ${saving ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}
+          style={{ backgroundColor: darkMode ? '#1A1A1A' : '#F5F5F5', borderColor: darkMode ? '#333' : '#ddd' }}>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" />
+          <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: darkMode ? '#888' : '#666' }}>
+            Saving to {isAuthenticated ? 'Cloud' : 'Drafts'}
+          </span>
+        </div>
+      </div>
+
       <div className="flex-1 flex overflow-hidden">
         {mode === 'draw' ? (
           <>
@@ -233,7 +273,6 @@ function EditorContent() {
               mode={mode}
               darkMode={darkMode}
               onNewProject={handleNewProject}
-              onSaveProject={handleSaveProject}
             />
           </>
         ) : (
@@ -279,7 +318,6 @@ function EditorContent() {
                 mode={mode}
                 darkMode={darkMode}
                 onNewProject={handleNewProject}
-                onSaveProject={handleSaveProject}
               />
 
               <AnimationTimeline
@@ -298,10 +336,6 @@ function EditorContent() {
               totalFrames={frames.length}
               fps={fps}
               darkMode={darkMode}
-              onSave={async () => {
-                const preview = await generatePNG(frames[currentFrame].pixels, gridSize, 600, darkMode ? '#000000' : '#ffffff');
-                handleSaveProject(preview);
-              }}
               onExportPNG={async () => {
                 const dataUrl = await generatePNG(frames[currentFrame].pixels, gridSize, 600, darkMode ? '#000000' : '#ffffff');
                 const link = document.createElement('a');

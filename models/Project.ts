@@ -17,6 +17,7 @@ const FrameSchema = new Schema<IFrame>(
 // ----- Project document -----
 export interface IProject extends Document {
   userId: string;
+  folderId?: string | null;
   name: string;
   date: string;
   preview: string;
@@ -32,6 +33,7 @@ export interface IProject extends Document {
 const ProjectSchema = new Schema<IProject>(
   {
     userId:      { type: String, required: true },
+    folderId:    { type: String, default: null },
     name:        { type: String, default: 'Untitled Project' },
     date:        { type: String, default: '' },
     preview:     { type: String, default: '' },
@@ -44,8 +46,8 @@ const ProjectSchema = new Schema<IProject>(
   { timestamps: true }
 );
 
-// Index for fast per-user queries
-ProjectSchema.index({ userId: 1, createdAt: -1 });
+// Index for fast per-user queries and folder lookups
+ProjectSchema.index({ userId: 1, folderId: 1, createdAt: -1 });
 
 // Prevent model re-compilation during Next.js HMR
 export const Project: Model<IProject> =

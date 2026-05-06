@@ -25,7 +25,7 @@ export async function getProjectById(userId: string, id: string) {
   return doc ? serialize(doc) : null;
 }
 
-export async function createProject(userId: string, data: CreateProjectInput) {
+export async function createProject(userId: string, data: CreateProjectInput & { folderId?: string | null }) {
   await connectToDatabase();
   const doc = await Project.create({
     userId,
@@ -35,11 +35,21 @@ export async function createProject(userId: string, data: CreateProjectInput) {
   return serialize(doc);
 }
 
-export async function updateProject(userId: string, id: string, data: UpdateProjectInput) {
+export async function updateProject(userId: string, id: string, data: UpdateProjectInput & { folderId?: string | null }) {
   await connectToDatabase();
   const doc = await Project.findOneAndUpdate(
     { _id: id, userId },
     { $set: data },
+    { new: true }
+  );
+  return doc ? serialize(doc) : null;
+}
+
+export async function moveProjectToFolder(userId: string, projectId: string, folderId: string | null) {
+  await connectToDatabase();
+  const doc = await Project.findOneAndUpdate(
+    { _id: projectId, userId },
+    { $set: { folderId } },
     { new: true }
   );
   return doc ? serialize(doc) : null;

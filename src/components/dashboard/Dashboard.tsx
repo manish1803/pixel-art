@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, FolderPlus, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ProjectCard } from './ProjectCard';
+import { FolderCard } from './FolderCard';
 import { UserMenu } from '../layout/UserMenu';
 
 interface Project {
@@ -16,19 +17,30 @@ interface Project {
   frames: { id: number; pixels: { [key: string]: string } }[];
   isFavourite: boolean;
   isDraft: boolean;
+  folderId?: string | null;
   [key: string]: any;
+}
+
+interface Folder {
+  id: string;
+  name: string;
 }
 
 interface DashboardProps {
   darkMode: boolean;
   setDarkMode: (v: boolean) => void;
   projects: Project[];
+  folders: Folder[];
   loading?: boolean;
   onNewProject: () => void;
   onOpenProject: (project: Project) => void;
   onToggleFavourite: (id: string) => void;
   onToggleDraft: (id: string) => void;
   onDeleteProject: (id: string) => void;
+  onCreateFolder: (name: string) => void;
+  onRenameFolder: (id: string, name: string) => void;
+  onDeleteFolder: (id: string) => void;
+  onMoveToFolder: (projectId: string, folderId: string | null) => void;
 }
 
 function SectionEmptyState({ label, darkMode }: { label: string; darkMode: boolean }) {
@@ -50,22 +62,34 @@ function Section({
   title,
   icon,
   projects,
+  folders = [],
   darkMode,
   emptyLabel,
   onOpenProject,
   onToggleFavourite,
   onToggleDraft,
   onDeleteProject,
+  onFolderClick,
+  onRenameFolder,
+  onDeleteFolder,
+  onMoveToFolder,
+  allFolders,
 }: {
   title: string;
-  icon: string;
+  icon: any;
   projects: Project[];
+  folders?: Folder[];
   darkMode: boolean;
   emptyLabel: string;
   onOpenProject: (p: Project) => void;
   onToggleFavourite: (id: string) => void;
   onToggleDraft: (id: string) => void;
   onDeleteProject: (id: string) => void;
+  onFolderClick?: (id: string) => void;
+  onRenameFolder?: (id: string, name: string) => void;
+  onDeleteFolder?: (id: string) => void;
+  onMoveToFolder: (projectId: string, folderId: string | null) => void;
+  allFolders: Folder[];
 }) {
   const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
 
@@ -77,24 +101,38 @@ function Section({
           {title}
         </span>
         <span className="text-[9px] font-bold opacity-30 ml-1" style={{ color: textColor }}>
-          ({projects.length})
+          ({projects.length + folders.length})
         </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-        {projects.length === 0 ? (
+        {projects.length === 0 && folders.length === 0 ? (
           <SectionEmptyState label={emptyLabel} darkMode={darkMode} />
         ) : (
-          projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              darkMode={darkMode}
-              onOpen={onOpenProject}
-              onToggleFavourite={onToggleFavourite}
-              onToggleDraft={onToggleDraft}
-              onDelete={onDeleteProject}
-            />
-          ))
+          <>
+            {folders.map((folder) => (
+              <FolderCard
+                key={folder.id}
+                folder={folder}
+                darkMode={darkMode}
+                onClick={onFolderClick!}
+                onRename={onRenameFolder!}
+                onDelete={onDeleteFolder!}
+              />
+            ))}
+            {projects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                darkMode={darkMode}
+                folders={allFolders}
+                onOpen={onOpenProject}
+                onToggleFavourite={onToggleFavourite}
+                onToggleDraft={onToggleDraft}
+                onDelete={onDeleteProject}
+                onMoveToFolder={onMoveToFolder}
+              />
+            ))}
+          </>
         )}
       </div>
     </section>
@@ -105,13 +143,19 @@ export function Dashboard({
   darkMode,
   setDarkMode,
   projects,
+  folders,
   loading = false,
   onNewProject,
   onOpenProject,
   onToggleFavourite,
   onToggleDraft,
   onDeleteProject,
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onMoveToFolder,
 }: DashboardProps) {
+  const [currentFolderId, setCurrentFolderId] = React.useState<string | null>(null);
   const bgColor = darkMode ? '#0B0B0B' : '#ffffff';
   const borderColor = darkMode ? '#1F1F1F' : '#e5e5e5';
   const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
@@ -121,7 +165,11 @@ export function Dashboard({
 
   const favourites = projects.filter((p) => p.isFavourite);
   const drafts = projects.filter((p) => p.isDraft && !p.isFavourite);
-  const all = projects;
+  
+  // Filter for the main view
+  const currentFolders = currentFolderId ? [] : folders; // We only have one level for now
+  const filteredProjects = projects.filter(p => p.folderId === (currentFolderId || null));
+  const currentFolderName = folders.find(f => f.id === currentFolderId)?.name;
 
   return (
     <div
@@ -159,10 +207,22 @@ export function Dashboard({
             </button>
           </div>
 
+          {/* New Folder */}
+          <button
+            onClick={() => {
+              const name = prompt('Folder name:');
+              if (name) onCreateFolder(name);
+            }}
+            className="h-9 px-4 border flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-accent"
+            style={{ borderColor, color: textColor }}
+          >
+            <FolderPlus className="w-3.5 h-3.5" />
+          </button>
+
           {/* New Project */}
           <button
             onClick={onNewProject}
-            className="h-9 px-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors"
+            className="h-9 px-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors shadow-lg active:scale-95"
             style={{ backgroundColor: darkMode ? 'white' : 'black', color: darkMode ? 'black' : 'white' }}
           >
             <Plus className="w-3 h-3" />
@@ -215,6 +275,8 @@ export function Dashboard({
             onToggleFavourite={onToggleFavourite}
             onToggleDraft={onToggleDraft}
             onDeleteProject={onDeleteProject}
+            onMoveToFolder={onMoveToFolder}
+            allFolders={folders}
           />
 
           {/* Drafts */}
@@ -228,19 +290,27 @@ export function Dashboard({
             onToggleFavourite={onToggleFavourite}
             onToggleDraft={onToggleDraft}
             onDeleteProject={onDeleteProject}
+            onMoveToFolder={onMoveToFolder}
+            allFolders={folders}
           />
 
-          {/* All Projects */}
+          {/* All Projects / Folder View */}
           <Section
-            title="All Projects"
-            icon="📁"
-            projects={all}
+            title={currentFolderId ? `Folder: ${currentFolderName}` : "All Projects"}
+            icon={currentFolderId ? <button onClick={() => setCurrentFolderId(null)} className="hover:opacity-50"><ArrowLeft className="w-4 h-4" /></button> : "📁"}
+            projects={filteredProjects}
+            folders={currentFolders}
             darkMode={darkMode}
-            emptyLabel="No saved projects yet — start drawing!"
+            emptyLabel={currentFolderId ? "This folder is empty" : "No saved projects yet — start drawing!"}
             onOpenProject={onOpenProject}
             onToggleFavourite={onToggleFavourite}
             onToggleDraft={onToggleDraft}
             onDeleteProject={onDeleteProject}
+            onFolderClick={(id) => setCurrentFolderId(id)}
+            onRenameFolder={onRenameFolder}
+            onDeleteFolder={onDeleteFolder}
+            onMoveToFolder={onMoveToFolder}
+            allFolders={folders}
           />
         </div>
       )}

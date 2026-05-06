@@ -9,7 +9,6 @@ interface AnimationRightPanelProps {
   totalFrames: number;
   fps: number;
   darkMode: boolean;
-  onSave: () => void;
   onExportPNG: () => void;
   onExportSVG: () => void;
 }
@@ -21,7 +20,6 @@ export function AnimationRightPanel({
   totalFrames,
   fps,
   darkMode,
-  onSave,
   onExportPNG,
   onExportSVG,
 }: AnimationRightPanelProps) {
@@ -72,9 +70,6 @@ export function AnimationRightPanel({
       </div>
 
       <div className="p-4 flex gap-2 border-t" style={{ borderColor }}>
-        <button onClick={onSave} className="flex-1 px-4 py-3 border text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-accent" style={{ backgroundColor: 'transparent', borderColor, color: textColor }}>
-          SAVE
-        </button>
         <div className="flex-1 relative">
           <button onClick={() => setExportOpen(!exportOpen)} className="w-full px-4 py-3 border text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-accent flex items-center justify-center gap-2" style={{ backgroundColor: exportOpen ? (darkMode ? '#1A1A1A' : '#F5F5F5') : 'transparent', borderColor, color: textColor }}>
             <span>EXPORT</span>

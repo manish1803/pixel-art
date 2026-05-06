@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { Star, Pencil, Trash2, FileText } from 'lucide-react';
+import { Star, Pencil, Trash2, FileText, Folder as FolderIcon } from 'lucide-react';
+import { DeleteModal } from '../ui/DeleteModal';
 
 interface Project {
   id: string;
@@ -12,20 +13,39 @@ interface Project {
   frames: { id: number; pixels: { [key: string]: string } }[];
   isFavourite: boolean;
   isDraft: boolean;
+  folderId?: string | null;
   [key: string]: any;
+}
+
+interface Folder {
+  id: string;
+  name: string;
 }
 
 interface ProjectCardProps {
   project: Project;
   darkMode: boolean;
+  folders: Folder[];
   onOpen: (project: Project) => void;
   onToggleFavourite: (id: string) => void;
   onToggleDraft: (id: string) => void;
   onDelete: (id: string) => void;
+  onMoveToFolder: (projectId: string, folderId: string | null) => void;
 }
 
-export function ProjectCard({ project, darkMode, onOpen, onToggleFavourite, onToggleDraft, onDelete }: ProjectCardProps) {
+export function ProjectCard({ 
+  project, 
+  darkMode, 
+  folders,
+  onOpen, 
+  onToggleFavourite, 
+  onToggleDraft, 
+  onDelete,
+  onMoveToFolder
+}: ProjectCardProps) {
   const [hovered, setHovered] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isMoveMenuOpen, setIsMoveMenuOpen] = useState(false);
 
   const borderColor = darkMode ? '#1F1F1F' : '#e5e5e5';
   const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
@@ -107,7 +127,7 @@ export function ProjectCard({ project, darkMode, onOpen, onToggleFavourite, onTo
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm(`Delete "${project.name}"?`)) onDelete(project.id);
+                setIsDeleteModalOpen(true);
               }}
               className="w-8 h-8 flex items-center justify-center border transition-colors hover:bg-red-500/10"
               style={{ borderColor, color: '#ef4444' }}
@@ -115,19 +135,81 @@ export function ProjectCard({ project, darkMode, onOpen, onToggleFavourite, onTo
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
+
+            {/* Move to Folder */}
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setIsMoveMenuOpen(!isMoveMenuOpen)}
+                className="w-8 h-8 flex items-center justify-center border transition-colors hover:bg-accent"
+                style={{ 
+                  borderColor, 
+                  backgroundColor: isMoveMenuOpen ? (darkMode ? '#1A1A1A' : '#F5F5F5') : 'transparent',
+                  color: textColor 
+                }}
+                title="Move to folder"
+              >
+                <FolderIcon className="w-3.5 h-3.5" />
+              </button>
+
+              {isMoveMenuOpen && (
+                <div 
+                  className="absolute bottom-full mb-2 right-0 border flex flex-col min-w-[140px] shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-150" 
+                  style={{ backgroundColor: cardBg, borderColor }}
+                >
+                  <div className="px-3 py-2 text-[8px] font-bold uppercase tracking-widest border-b opacity-40" style={{ borderColor }}>
+                    Move to...
+                  </div>
+                  <button 
+                    onClick={() => { onMoveToFolder(project.id, null); setIsMoveMenuOpen(false); }}
+                    className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-wider hover:bg-accent transition-colors flex items-center gap-2"
+                    style={{ color: !project.folderId ? '#00FF41' : textColor }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full border" style={{ borderColor: !project.folderId ? '#00FF41' : mutedText }} />
+                    Root Directory
+                  </button>
+                  {folders.map(f => (
+                    <button 
+                      key={f.id}
+                      onClick={() => { onMoveToFolder(project.id, f.id); setIsMoveMenuOpen(false); }}
+                      className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-wider hover:bg-accent transition-colors flex items-center gap-2"
+                      style={{ color: project.folderId === f.id ? '#00FF41' : textColor }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full border" style={{ borderColor: project.folderId === f.id ? '#00FF41' : mutedText }} />
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
       {/* Card Footer */}
-      <div className="px-3 py-2.5 border-t" style={{ borderColor }}>
+      <div className="px-3 py-2.5 border-t relative" style={{ borderColor }}>
         <div className="text-[10px] font-bold uppercase tracking-wider truncate" style={{ color: textColor }}>
           {project.name || 'Untitled'}
         </div>
-        <div className="text-[9px] uppercase tracking-widest mt-0.5 opacity-40" style={{ color: textColor }}>
-          {project.date}
+        <div className="flex items-center justify-between mt-0.5">
+          <div className="text-[9px] uppercase tracking-widest opacity-40" style={{ color: textColor }}>
+            {project.date}
+          </div>
+          {project.folderId && (
+            <div className="text-[8px] font-bold uppercase tracking-tighter opacity-30 flex items-center gap-1" style={{ color: textColor }}>
+              <FolderIcon className="w-2 h-2" />
+              {folders.find(f => f.id === project.folderId)?.name || 'Folder'}
+            </div>
+          )}
         </div>
       </div>
+
+      <DeleteModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => onDelete(project.id)}
+        projectName={project.name || 'Untitled Project'}
+        darkMode={darkMode}
+      />
     </div>
   );
 }

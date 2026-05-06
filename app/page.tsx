@@ -7,6 +7,7 @@ import { Dashboard } from '../src/components/dashboard/Dashboard';
 
 interface Project {
   id: string;
+  folderId?: string | null;
   name: string;
   date: string;
   preview: string;
@@ -17,6 +18,11 @@ interface Project {
   isDraft: boolean;
 }
 
+interface Folder {
+  id: string;
+  name: string;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -24,6 +30,7 @@ export default function DashboardPage() {
 
   const [darkMode, setDarkMode] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ─── Load projects ──────────────────────────────────────────────────
@@ -31,16 +38,20 @@ export default function DashboardPage() {
     if (status === 'loading') return;
 
     if (isAuthenticated) {
-      fetch('/api/projects')
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.success) setProjects(res.data);
+      Promise.all([
+        fetch('/api/projects').then((r) => r.json()),
+        fetch('/api/folders').then((r) => r.json()),
+      ])
+        .then(([pRes, fRes]) => {
+          if (pRes.success) setProjects(pRes.data);
+          if (fRes.success) setFolders(fRes.data);
         })
         .catch(console.error)
         .finally(() => setLoading(false));
     } else {
       const saved = localStorage.getItem('pixel-art-projects');
       setProjects(saved ? JSON.parse(saved) : []);
+      setFolders([]); // No folders in guest mode for now
       setLoading(false);
     }
   }, [status, isAuthenticated]);
@@ -107,17 +118,63 @@ export default function DashboardPage() {
     [isAuthenticated]
   );
 
+  // ─── Folder Handlers ────────────────────────────────────────────────
+  const handleCreateFolder = useCallback(async (name: string) => {
+    if (!isAuthenticated) return;
+    const res = await fetch('/api/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (data.success) setFolders(prev => [data.data, ...prev]);
+  }, [isAuthenticated]);
+
+  const handleRenameFolder = useCallback(async (id: string, name: string) => {
+    if (!isAuthenticated) return;
+    const res = await fetch(`/api/folders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (data.success) setFolders(prev => prev.map(f => f.id === id ? { ...f, name } : f));
+  }, [isAuthenticated]);
+
+  const handleDeleteFolder = useCallback(async (id: string) => {
+    if (!isAuthenticated) return;
+    await fetch(`/api/folders/${id}`, { method: 'DELETE' });
+    setFolders(prev => prev.filter(f => f.id !== id));
+    // Also update projects locally that were in this folder
+    setProjects(prev => prev.map(p => p.folderId === id ? { ...p, folderId: null } : p));
+  }, [isAuthenticated]);
+
+  const handleMoveToFolder = useCallback(async (projectId: string, folderId: string | null) => {
+    if (!isAuthenticated) return;
+    await fetch(`/api/projects/${projectId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderId }),
+    });
+    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, folderId } : p));
+  }, [isAuthenticated]);
+
   return (
     <Dashboard
       darkMode={darkMode}
       setDarkMode={setDarkMode}
       projects={projects}
+      folders={folders}
       loading={loading}
       onNewProject={handleNewProject}
       onOpenProject={handleOpenProject}
       onToggleFavourite={handleToggleFavourite}
       onToggleDraft={handleToggleDraft}
       onDeleteProject={handleDeleteProject}
+      onCreateFolder={handleCreateFolder}
+      onRenameFolder={handleRenameFolder}
+      onDeleteFolder={handleDeleteFolder}
+      onMoveToFolder={handleMoveToFolder}
     />
   );
 }
