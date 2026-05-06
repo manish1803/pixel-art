@@ -1,19 +1,22 @@
 'use client';
-import React, { useEffect } from 'react';
-import { Trash2, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FolderPlus, X } from 'lucide-react';
 
-interface DeleteModalProps {
+interface CreateFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
-  projectName: string;
+  onConfirm: (name: string) => void;
   darkMode: boolean;
 }
 
-export function DeleteModal({ isOpen, onClose, onConfirm, projectName, darkMode }: DeleteModalProps) {
-  // Prevent scroll when modal is open
+export function CreateFolderModal({ isOpen, onClose, onConfirm, darkMode }: CreateFolderModalProps) {
+  const [folderName, setFolderName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (isOpen) {
+      setFolderName('');
+      setTimeout(() => inputRef.current?.focus(), 100);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -22,6 +25,14 @@ export function DeleteModal({ isOpen, onClose, onConfirm, projectName, darkMode 
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (folderName.trim()) {
+      onConfirm(folderName.trim());
+      onClose();
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -32,21 +43,23 @@ export function DeleteModal({ isOpen, onClose, onConfirm, projectName, darkMode 
       />
 
       {/* Modal Content */}
-      <div 
+      <form 
+        onSubmit={handleSubmit}
         className="relative w-full max-w-sm border border-border bg-background shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-500 border border-red-500/20">
-              <Trash2 className="w-4 h-4" />
+            <div className="w-8 h-8 flex items-center justify-center bg-accent/10 text-accent border border-border">
+              <FolderPlus className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">
-              Delete Project
+              Create New Folder
             </span>
           </div>
           <button 
+            type="button"
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-50 text-foreground"
           >
@@ -56,30 +69,37 @@ export function DeleteModal({ isOpen, onClose, onConfirm, projectName, darkMode 
 
         {/* Body */}
         <div className="p-8">
-          <p className="text-[11px] leading-relaxed tracking-wide text-muted">
-            Are you sure you want to delete <span className="font-bold text-foreground">"{projectName}"</span>? This action cannot be undone and all pixel data will be permanently removed.
-          </p>
+          <div className="flex flex-col gap-2">
+            <label className="text-[9px] font-bold uppercase tracking-widest text-muted">Folder Name</label>
+            <input
+              ref={inputRef}
+              type="text"
+              value={folderName}
+              onChange={(e) => setFolderName(e.target.value)}
+              placeholder="e.g. Character Concepts"
+              className="w-full bg-panel border border-border px-4 py-3 text-sm outline-none transition-all focus:ring-1 focus:ring-accent text-foreground md:text-sm"
+            />
+          </div>
         </div>
 
         {/* Footer */}
         <div className="flex border-t border-border">
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-panel text-foreground border-r border-border"
           >
             Cancel
           </button>
           <button
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-            className="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors bg-red-600 text-white hover:bg-red-700"
+            type="submit"
+            disabled={!folderName.trim()}
+            className="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors bg-accent text-black hover:bg-accent/80 disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            Confirm Delete
+            Create Folder
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

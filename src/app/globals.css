@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-mono: 'Geist Mono', monospace;
+  
+  --color-background: #ffffff;
+  --color-foreground: #1a1a1a;
+  --color-border: #e5e5e5;
+  --color-muted: #666;
+  --color-accent: #00FF41;
+  --color-panel: #f9f9f9;
+}
+
+.dark {
+  --color-background: #0B0B0B;
+  --color-foreground: #EAEAEA;
+  --color-border: #1F1F1F;
+  --color-muted: #888;
+  --color-panel: #111;
+}
+
+@layer base {
+  body {
+    @apply antialiased overflow-x-hidden bg-background text-foreground;
+    font-family: var(--font-mono);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+/* Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

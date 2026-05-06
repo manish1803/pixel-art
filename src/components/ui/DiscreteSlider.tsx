@@ -6,14 +6,9 @@ interface DiscreteSliderProps {
   min: number;
   max: number;
   onChange: (value: number) => void;
-  darkMode: boolean;
 }
 
-export function DiscreteSlider({ value, min, max, onChange, darkMode }: DiscreteSliderProps) {
-  const borderColor = darkMode ? '#1F1F1F' : '#e5e5e5';
-  const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
-  const mutedText = darkMode ? '#888' : '#666';
-  const activeColor = darkMode ? '#FFFFFF' : '#000000';
+export function DiscreteSlider({ value, min, max, onChange }: DiscreteSliderProps) {
 
   const steps = [1, 2, 4, 8, 16]; 
   const markers = [1, 2, 3, 4, 5]; 
@@ -30,22 +25,16 @@ export function DiscreteSlider({ value, min, max, onChange, darkMode }: Discrete
     <div className="flex items-center gap-1">
       <button 
         onClick={handleDecrement}
-        className="w-8 h-8 flex items-center justify-center border transition-colors hover:bg-accent"
-        style={{ borderColor, color: mutedText }}
+        className="w-8 h-8 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
       
-      <div 
-        className="flex-1 h-8 flex items-center px-2 gap-2 border"
-        style={{ borderColor }}
-      >
+      <div className="flex-1 h-8 flex items-center px-2 gap-2 border border-border">
         {/* Square representing size */}
         <div 
-          className="w-4 h-4 border"
+          className="w-4 h-4 border border-foreground bg-foreground transition-transform duration-200"
           style={{ 
-            backgroundColor: activeColor,
-            borderColor: activeColor,
             transform: `scale(${Math.max(0.2, Math.min(1, value / max))})` 
           }}
         />
@@ -55,8 +44,9 @@ export function DiscreteSlider({ value, min, max, onChange, darkMode }: Discrete
           {[1, 2, 3, 4, 5].map((i) => (
             <div 
               key={i} 
-              className="w-[1px] h-2" 
-              style={{ backgroundColor: i <= (value / max) * 5 ? activeColor : borderColor }} 
+              className={`w-[1px] h-2 transition-colors duration-200 ${
+                i <= (value / max) * 5 ? 'bg-foreground' : 'bg-border'
+              }`}
             />
           ))}
         </div>
@@ -64,8 +54,7 @@ export function DiscreteSlider({ value, min, max, onChange, darkMode }: Discrete
 
       <button 
         onClick={handleIncrement}
-        className="w-8 h-8 flex items-center justify-center border transition-colors hover:bg-accent"
-        style={{ borderColor, color: mutedText }}
+        className="w-8 h-8 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
