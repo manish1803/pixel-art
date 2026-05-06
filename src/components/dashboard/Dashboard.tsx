@@ -1,7 +1,10 @@
 'use client';
 import React from 'react';
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ProjectCard } from './ProjectCard';
+import { UserMenu } from '../layout/UserMenu';
 
 interface Project {
   id: string;
@@ -111,6 +114,8 @@ export function Dashboard({
   const borderColor = darkMode ? '#1F1F1F' : '#e5e5e5';
   const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
   const mutedText = darkMode ? '#888' : '#666';
+  const router = useRouter();
+  const { data: session } = useSession();
 
   const favourites = projects.filter((p) => p.isFavourite);
   const drafts = projects.filter((p) => p.isDraft && !p.isFavourite);
@@ -161,8 +166,32 @@ export function Dashboard({
             <Plus className="w-3 h-3" />
             New Project
           </button>
+
+          <UserMenu
+            darkMode={darkMode}
+            onSignIn={() => router.push('/auth/signin?callbackUrl=/')}
+          />
         </div>
       </nav>
+
+      {/* Guest sync banner */}
+      {!session && (
+        <div
+          className="px-8 py-2.5 border-b flex items-center justify-between"
+          style={{ borderColor, backgroundColor: darkMode ? '#0d0d0d' : '#f9f9f9' }}
+        >
+          <span className="text-[9px] font-bold uppercase tracking-widest opacity-40" style={{ color: textColor }}>
+            ☁ Sign in to sync your projects across devices
+          </span>
+          <button
+            onClick={() => router.push('/auth/signin?callbackUrl=/')}
+            className="text-[9px] font-bold uppercase tracking-widest underline opacity-40 hover:opacity-100 transition-opacity"
+            style={{ color: textColor }}
+          >
+            Sign In
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-10">

@@ -1,5 +1,7 @@
 'use client';
 import { Coffee } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { UserMenu } from './UserMenu';
 
 interface TopNavigationProps {
   mode: 'draw' | 'animate';
@@ -10,6 +12,7 @@ interface TopNavigationProps {
 }
 
 export function TopNavigation({ mode, setMode, darkMode, setDarkMode, onBackToDashboard }: TopNavigationProps) {
+  const router = useRouter();
   const bgColor = darkMode ? '#0B0B0B' : '#ffffff';
   const borderColor = darkMode ? '#1F1F1F' : '#e5e5e5';
   const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
@@ -76,12 +79,10 @@ export function TopNavigation({ mode, setMode, darkMode, setDarkMode, onBackToDa
           </button>
         </div>
 
-        <button 
-          className="px-6 py-2 border text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-accent"
-          style={{ borderColor, color: textColor, backgroundColor: 'transparent' }}
-        >
-          Buy me a Coffee
-        </button>
+        <UserMenu 
+          darkMode={darkMode}
+          onSignIn={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent('/editor')}`)} 
+        />
       </div>
     </nav>
   );
