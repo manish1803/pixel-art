@@ -1,13 +1,14 @@
-import { Coffee } from 'lucide-react';
+import { Coffee, LayoutDashboard } from 'lucide-react';
 
 interface TopNavigationProps {
   mode: 'draw' | 'animate';
   setMode: (mode: 'draw' | 'animate') => void;
   darkMode: boolean;
   setDarkMode: (value: boolean) => void;
+  onBackToDashboard: () => void;
 }
 
-export function TopNavigation({ mode, setMode, darkMode, setDarkMode }: TopNavigationProps) {
+export function TopNavigation({ mode, setMode, darkMode, setDarkMode, onBackToDashboard }: TopNavigationProps) {
   const bgColor = darkMode ? '#0B0B0B' : '#ffffff';
   const borderColor = darkMode ? '#1F1F1F' : '#e5e5e5';
   const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
@@ -15,14 +16,23 @@ export function TopNavigation({ mode, setMode, darkMode, setDarkMode }: TopNavig
 
   return (
     <nav className="h-16 border-b flex items-center justify-between px-8" style={{ fontFamily: "'Geist Mono', monospace", backgroundColor: bgColor, borderColor }}>
-      <div className="flex items-center gap-3">
-        <div className="grid grid-cols-2 gap-0.5">
-          <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
-          <div className="w-2.5 h-2.5 bg-[#00FF41]" />
-          <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
-          <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onBackToDashboard}
+          className="flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity"
+          title="Back to Dashboard"
+        >
+          <LayoutDashboard className="w-4 h-4" style={{ color: textColor }} />
+        </button>
+        <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-0.5">
+            <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
+            <div className="w-2.5 h-2.5 bg-[#00FF41]" />
+            <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
+            <div className="w-2.5 h-2.5 border" style={{ borderColor: darkMode ? '#333' : '#ddd' }} />
+          </div>
+          <span className="text-lg font-bold tracking-tighter" style={{ color: textColor }}>pixel</span>
         </div>
-        <span className="text-lg font-bold tracking-tighter" style={{ color: textColor }}>pixel</span>
       </div>
 
       <div className="flex items-center gap-2 border p-1" style={{ borderColor }}>

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { TopNavigation } from './components/layout/TopNavigation';
 import { ToolsPanel } from './components/panels/ToolsPanel';
 import { CanvasArea } from './components/canvas/CanvasArea';
-import { SavedFilesPanel } from './components/panels/SavedFilesPanel';
+import { Dashboard } from './components/dashboard/Dashboard';
 import { generatePNG, generateSVG } from './utils/export';
 import { AnimationLeftPanel } from './components/panels/AnimationLeftPanel';
 import { AnimationRightPanel } from './components/panels/AnimationRightPanel';
@@ -19,6 +19,7 @@ export default function App() {
   const [eraserSize, setEraserSize] = useState(1);
   const [gridSize, setGridSize] = useState(32);
   const [toyMode, setToyMode] = useState(false);
+  const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
   const [projectName, setProjectName] = useState('');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   
@@ -37,6 +38,8 @@ export default function App() {
     pixels: { [key: string]: string };
     gridSize: number;
     frames: { id: number; pixels: { [key: string]: string } }[];
+    isFavourite: boolean;
+    isDraft: boolean;
   }[]>(() => {
     const saved = localStorage.getItem('pixel-art-projects');
     return saved ? JSON.parse(saved) : [];
@@ -61,6 +64,7 @@ export default function App() {
     setCurrentFrame(0);
     setProjectName('');
     setCurrentProjectId(null);
+    setView('editor');
   }, [clearHistory]);
 
   const handleAddFrame = useCallback(() => {
@@ -75,14 +79,14 @@ export default function App() {
         preview,
         pixels,
         gridSize,
-        frames
+        frames,
+        isFavourite: false,
+        isDraft: false,
       };
 
       if (currentProjectId) {
-        // Update existing project
         return prev.map(p => p.id === currentProjectId ? { ...p, ...projectData } : p);
       } else {
-        // Create new project
         const newId = Date.now().toString();
         setCurrentProjectId(newId);
         return [{ id: newId, ...projectData }, ...prev];
@@ -90,23 +94,28 @@ export default function App() {
     });
   }, [projectName, pixels, gridSize, frames, currentProjectId]);
 
-  const handleLoadProject = useCallback((project: any) => {
+  const handleOpenProject = useCallback((project: any) => {
     setCurrentProjectId(project.id);
     setProjectName(project.name);
     setGridSize(project.gridSize);
     updatePixelsWithHistory(project.pixels);
-    if (project.frames) {
-      setFrames(project.frames);
-    }
+    if (project.frames) setFrames(project.frames);
     setCurrentFrame(0);
+    setView('editor');
   }, [updatePixelsWithHistory]);
 
   const handleDeleteProject = useCallback((id: string) => {
     setSavedProjects(prev => prev.filter(p => p.id !== id));
-    if (currentProjectId === id) {
-      handleNewProject();
-    }
+    if (currentProjectId === id) handleNewProject();
   }, [currentProjectId, handleNewProject]);
+
+  const handleToggleFavourite = useCallback((id: string) => {
+    setSavedProjects(prev => prev.map(p => p.id === id ? { ...p, isFavourite: !p.isFavourite } : p));
+  }, []);
+
+  const handleToggleDraft = useCallback((id: string) => {
+    setSavedProjects(prev => prev.map(p => p.id === id ? { ...p, isDraft: !p.isDraft } : p));
+  }, []);
 
   const performSave = useCallback(async () => {
     const currentPixels = mode === 'draw' ? pixels : frames[currentFrame]?.pixels || {};
@@ -146,6 +155,21 @@ export default function App() {
   const bgColor = darkMode ? '#0B0B0B' : '#ffffff';
   const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
 
+  if (view === 'dashboard') {
+    return (
+      <Dashboard
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        projects={savedProjects}
+        onNewProject={handleNewProject}
+        onOpenProject={handleOpenProject}
+        onToggleFavourite={handleToggleFavourite}
+        onToggleDraft={handleToggleDraft}
+        onDeleteProject={handleDeleteProject}
+      />
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col" style={{ fontFamily: "'Geist Mono', monospace", backgroundColor: bgColor, color: textColor }}>
       <TopNavigation
@@ -153,6 +177,7 @@ export default function App() {
         setMode={setMode}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
+        onBackToDashboard={() => setView('dashboard')}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -191,12 +216,6 @@ export default function App() {
               onSaveProject={handleSaveProject}
             />
 
-            <SavedFilesPanel 
-              darkMode={darkMode} 
-              savedProjects={savedProjects}
-              onLoadProject={handleLoadProject}
-              onDeleteProject={handleDeleteProject}
-            />
           </>
         ) : (
           <>
