@@ -2,6 +2,7 @@
 import { Coffee } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { UserMenu } from './UserMenu';
+import { Logo } from '../Logo';
 
 interface TopNavigationProps {
   mode: 'draw' | 'animate';
@@ -29,16 +30,10 @@ export function TopNavigation({
       <div className="flex items-center gap-4 flex-1">
         <button
           onClick={onBackToDashboard}
-          className="flex items-center gap-3 hover:opacity-70 transition-opacity"
+          className="hover:opacity-70 transition-opacity"
           title="Back to Dashboard"
         >
-          <div className="grid grid-cols-2 gap-0.5">
-            <div className="w-2.5 h-2.5 border border-border" />
-            <div className="w-2.5 h-2.5 bg-accent" />
-            <div className="w-2.5 h-2.5 border border-border" />
-            <div className="w-2.5 h-2.5 border border-border" />
-          </div>
-          <span className="text-lg font-bold tracking-tighter">pixel</span>
+          <Logo />
         </button>
 
         <div className="flex items-center w-full max-w-sm h-10 border border-border px-4 bg-panel/30 focus-within:bg-panel/50 transition-colors">
@@ -85,7 +80,6 @@ export function TopNavigation({
         </div>
 
         <UserMenu 
-          darkMode={darkMode}
           onSignIn={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent('/editor')}`)} 
         />
       </div>

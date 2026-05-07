@@ -214,7 +214,7 @@ export const CanvasArea = React.memo(function CanvasArea({
   };
 
   return (
-    <div className="flex-1 h-full overflow-hidden flex flex-col p-12 bg-background transition-colors duration-300">
+    <div className="flex-1 h-full overflow-hidden flex flex-col p-8 bg-background transition-colors duration-300">
 
 
       <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
@@ -234,7 +234,7 @@ export const CanvasArea = React.memo(function CanvasArea({
         />
       </div>
 
-      <div className="flex items-center justify-between mt-12 shrink-0">
+      <div className="flex items-center justify-between mt-8 shrink-0">
 
         <div className="flex items-center gap-8">
           <div className="flex flex-col gap-2">

@@ -5,13 +5,13 @@ import { useSession, signOut } from 'next-auth/react';
 import { LogOut, User, ChevronDown } from 'lucide-react';
 
 interface UserMenuProps {
-  darkMode: boolean;
   onSignIn: () => void;
 }
 
 export function UserMenu({ onSignIn }: UserMenuProps) {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,25 +39,31 @@ export function UserMenu({ onSignIn }: UserMenuProps) {
     );
   }
 
+  const userInitial = session.user?.name?.charAt(0).toUpperCase() || '?';
+
   return (
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 h-8 px-3 border border-border transition-colors hover:border-foreground text-foreground"
+        className="flex items-center gap-2 h-8 px-3 border border-border transition-colors hover:border-foreground text-foreground group"
       >
-        {session.user?.image ? (
-          <img
-            src={session.user.image}
-            alt={session.user.name || ''}
-            className="w-5 h-5 rounded-full"
-          />
-        ) : (
-          <User className="w-4 h-4" />
-        )}
+        <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-accent/10 border border-white/5">
+          {session.user?.image && !imageError ? (
+            <img
+              src={session.user.image}
+              alt={session.user.name || ''}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <span className="text-[10px] font-black text-accent">{userInitial}</span>
+          )}
+        </div>
         <span className="text-[9px] font-bold uppercase tracking-widest max-w-[80px] truncate hidden sm:block">
           {session.user?.name?.split(' ')[0] || 'Account'}
         </span>
-        <ChevronDown className="w-3 h-3 opacity-40" />
+        <ChevronDown className="w-3 h-3 opacity-40 group-hover:opacity-100 transition-opacity" />
       </button>
 
       {open && (

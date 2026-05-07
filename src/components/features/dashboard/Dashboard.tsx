@@ -7,6 +7,7 @@ import { ProjectCard } from './ProjectCard';
 import { FolderCard } from './FolderCard';
 import { UserMenu } from '@/components/shared/layout/UserMenu';
 import { CreateFolderModal } from '@/components/ui/CreateFolderModal';
+import { Logo } from '@/components/shared/Logo';
 
 interface Project {
   id: string;
@@ -180,15 +181,7 @@ export function Dashboard({
     <div className="h-screen flex flex-col overflow-hidden bg-background text-foreground transition-colors duration-300">
       {/* Top Nav */}
       <nav className="h-16 border-b border-border flex items-center justify-between px-8 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="grid grid-cols-2 gap-0.5">
-            <div className="w-2.5 h-2.5 border border-border" />
-            <div className="w-2.5 h-2.5 bg-accent" />
-            <div className="w-2.5 h-2.5 border border-border" />
-            <div className="w-2.5 h-2.5 border border-border" />
-          </div>
-          <span className="text-lg font-bold tracking-tighter">pixel</span>
-        </div>
+        <Logo />
 
         <div className="flex items-center gap-6">
           {/* Dark mode toggle */}

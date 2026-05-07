@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { PanelContainer, PanelSection } from '@/components/shared/PanelBase';
 
 interface Frame {
   id: number;
@@ -81,61 +82,58 @@ export function AnimationRightPanel({
   }, [frames, currentFrame, gridSize, darkMode]);
 
   return (
-    <div className="w-80 border-l border-border flex flex-col h-full overflow-hidden bg-background">
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-        
-        {/* Animation Preview Block */}
-        <div className="border border-border p-4 flex flex-col gap-4">
-          <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-foreground">ANIMATION PREVIEW</div>
-          <div className="border border-border aspect-square flex items-center justify-center relative overflow-hidden bg-panel">
-            {/* Grid background for preview area */}
-            <div className="absolute inset-0 opacity-[0.03] [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:10px_10px] text-foreground" />
-            <canvas 
-              ref={canvasRef}
-              width={200}
-              height={200}
-              className="relative z-10 [image-rendering:pixelated] w-full h-full"
-            />
-          </div>
-
-          <div className="flex flex-col gap-4 mt-4">
-            <div className="flex items-center justify-center gap-2">
-              <button 
-                onClick={() => setCurrentFrame((currentFrame - 1 + totalFrames) % totalFrames)}
-                className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M12 0L0 6L12 12V0Z"/></svg>
-              </button>
-              <button onClick={() => setIsPlaying(!isPlaying)} className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-foreground">
-                {isPlaying ? (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0H4V12H0V0ZM8 0H12V12H8V0Z"/></svg>
-                ) : (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0L12 6L0 12V0Z"/></svg>
-                )}
-              </button>
-              <button 
-                onClick={() => setCurrentFrame((currentFrame + 1) % totalFrames)}
-                className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0L12 6L0 12V0Z"/><path d="M10 0H12V12H10V0Z"/></svg>
-              </button>
-            </div>
-
-            <div className="text-right space-y-0.5 pr-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-foreground">{fps} FPS</div>
-              <div className="text-[9px] font-bold uppercase opacity-40 text-foreground">Frame {currentFrame + 1} of {totalFrames}</div>
-            </div>
-          </div>
+    <PanelContainer side="right" width="w-80">
+      
+      {/* Animation Preview Block */}
+      <PanelSection title="Animation Preview">
+        <div className="border border-border aspect-square flex items-center justify-center relative overflow-hidden bg-panel">
+          {/* Grid background for preview area */}
+          <div className="absolute inset-0 opacity-[0.03] [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:10px_10px] text-foreground" />
+          <canvas 
+            ref={canvasRef}
+            width={200}
+            height={200}
+            className="relative z-10 [image-rendering:pixelated] w-full h-full"
+          />
         </div>
 
-      </div>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-center gap-2">
+            <button 
+              onClick={() => setCurrentFrame((currentFrame - 1 + totalFrames) % totalFrames)}
+              className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M12 0L0 6L12 12V0Z"/></svg>
+            </button>
+            <button onClick={() => setIsPlaying(!isPlaying)} className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-foreground">
+              {isPlaying ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0H4V12H0V0ZM8 0H12V12H8V0Z"/></svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0L12 6L0 12V0Z"/></svg>
+              )}
+            </button>
+            <button 
+              onClick={() => setCurrentFrame((currentFrame + 1) % totalFrames)}
+              className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0L12 6L0 12V0Z"/><path d="M10 0H12V12H10V0Z"/></svg>
+            </button>
+          </div>
 
-      <div className="p-4 flex gap-2 border-t border-border">
-        <div className="flex-1 relative">
+          <div className="text-right space-y-0.5">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-foreground">{fps} FPS</div>
+            <div className="text-[9px] font-bold uppercase opacity-40 text-foreground">Frame {currentFrame + 1} of {totalFrames}</div>
+          </div>
+        </div>
+      </PanelSection>
+
+      {/* Export Section */}
+      <PanelSection title="Export Assets">
+        <div className="relative">
           <button onClick={() => setExportOpen(!exportOpen)} className={`w-full px-4 py-3 border border-border text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-accent hover:text-black flex items-center justify-center gap-2 text-foreground ${
             exportOpen ? 'bg-panel' : 'bg-transparent'
           }`}>
-            <span>EXPORT</span>
+            <span>EXPORT FRAME</span>
             <ChevronRight className={`w-3 h-3 transition-transform ${exportOpen ? '-rotate-90' : 'rotate-90'}`} />
           </button>
           
@@ -156,7 +154,8 @@ export function AnimationRightPanel({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </PanelSection>
+
+    </PanelContainer>
   );
 }
