@@ -80,7 +80,6 @@ export function TopNavigation({
         </div>
 
         <UserMenu 
-          darkMode={darkMode}
           onSignIn={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent('/editor')}`)} 
         />
       </div>

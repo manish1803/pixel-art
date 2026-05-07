@@ -56,7 +56,6 @@ export function Navbar() {
                 Dashboard
               </Link>
               <UserMenu 
-                darkMode={true} 
                 onSignIn={() => router.push('/auth/signin')} 
               />
             </>

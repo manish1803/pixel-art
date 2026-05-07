@@ -5,7 +5,6 @@ import { useSession, signOut } from 'next-auth/react';
 import { LogOut, User, ChevronDown } from 'lucide-react';
 
 interface UserMenuProps {
-  darkMode: boolean;
   onSignIn: () => void;
 }
 

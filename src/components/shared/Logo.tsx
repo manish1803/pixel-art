@@ -8,7 +8,11 @@ interface LogoProps {
 
 export function Logo({ className, iconOnly = false }: LogoProps) {
   return (
-    <div className={cn("flex items-center gap-3 select-none", className)}>
+    <div 
+      className={cn("flex items-center gap-3 select-none", className)}
+      role="img"
+      aria-label="Pixel"
+    >
       <div className="grid grid-cols-2 gap-0.5 shrink-0">
         <div className="w-2.5 h-2.5 border border-white/20" />
         <div className="w-2.5 h-2.5 bg-accent" />
