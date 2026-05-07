@@ -102,8 +102,8 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
       <div className="flex items-center justify-between">
         <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-foreground">COLOUR PICKER</div>
         <button 
-          className={`p-1.5 rounded-sm transition-all ${
-            isPickerActive ? 'bg-panel border-foreground text-accent' : 'opacity-40 hover:opacity-100 hover:bg-panel text-foreground'
+          className={`p-1.5 rounded-sm transition-all border ${
+            isPickerActive ? 'bg-accent/10 border-accent text-accent' : 'border-transparent opacity-40 hover:opacity-100 hover:bg-panel text-foreground'
           }`}
           onClick={onPickColor}
           title="Pick color from canvas"

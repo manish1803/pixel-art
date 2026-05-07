@@ -1,0 +1,38 @@
+"use client";
+import React from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+
+export function CTASection() {
+  return (
+    <section className="section-padding bg-surface-sunken overflow-hidden">
+      <div className="content-container relative">
+        {/* Subtle Background Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-accent/5 blur-[150px] -z-10" />
+        
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8">
+            Ready to elevate your <br /> pixel art workflow?
+          </h1>
+          <p className="text-lg md:text-xl text-text-muted mb-12 max-w-2xl mx-auto">
+            Join the community of creators building the future of 2D game design. 
+            Start creating today — no setup required.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/editor" className="btn-primary py-5 px-10 rounded-xl text-base w-full sm:w-auto">
+              Get Started for Free
+            </Link>
+            <Link href="/auth/signin" className="btn-secondary py-5 px-10 rounded-xl text-base w-full sm:w-auto">
+              Sign In to Your Library
+            </Link>
+          </div>
+          
+          <p className="mt-8 text-[10px] uppercase font-bold tracking-[0.2em] text-text-dim">
+            Trusted by creators from around the world.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}

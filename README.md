@@ -1,180 +1,127 @@
-# Pixel Art
+# <p align="center">PIXEL.ART</p>
 
-> A premium, dark-themed pixel art editor and animator — built for designers and developers who love clean interfaces.
+<p align="center">
+  <img src="public/favicon.svg" width="80" height="80" alt="PIXEL.ART Logo" />
+</p>
 
-![Pixel Art Preview](public/preview.png)
+<p align="center">
+  <strong>A high-performance, dark-themed pixel art editor and animator built for the modern web.</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Framer_Motion-12.0-ff0055?style=for-the-badge&logo=framer" alt="Framer Motion" />
+  <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
+</p>
 
 ---
+
+PIXEL.ART is a premium creative suite designed for pixel artists and game developers. It combines the power of a desktop application with the accessibility of a web environment, featuring a technical dark theme, real-time rendering, and advanced animation tools.
 
 ## ✨ Features
 
-### 🎨 Drawing Tools
-- **Fill / Draw** — Paint pixels with your selected colour
-- **Eraser** — Remove individual pixels or areas
-- **Canvas Picker** — Sample any colour from the current canvas
-- **EyeDropper API** — Pick any colour from anywhere on your screen (Chrome/Edge)
-- **Brush Size** — Adjustable brush for painting multiple pixels at once
+### 🖌️ Professional Drawing Suite
+- **Advanced Pixel Engine** — Precise sub-pixel rendering with coordinate snapping.
+- **Dynamic Brush Control** — Adjustable brush sizes and eraser modes.
+- **Technical Color Picker** — Full HSV/RGB/HEX support with a technical drag-and-drop interface.
+- **Smart EyeDropper** — Sample colors from the canvas or use the native browser EyeDropper API.
 
-### 🎨 Colour Picker
-- HSV saturation box with drag interaction
-- Hue slider
-- RGB and HEX input modes
-- Recent colour swatches (up to 18 colours)
-- Hover-reveal eyedropper icon for screen-wide colour picking
+### 🎬 Animation & Timeline
+- **Frame-by-Frame Editing** — Powerful multi-frame timeline with real-time preview.
+- **Interactive Reordering** — Drag and drop frames to reorganize your animation sequence.
+- **Onion Skinning** — Visual guidance by overlaying adjacent frames.
+- **Playback Controls** — Adjustable FPS and instant playback for high-fidelity previews.
 
-### 🖼️ Canvas
-- Grid sizes from 8×8 up to 64×64
-- **Toy Mode** — Renders the canvas with Lego-style 3D studs
-- Dark and Light mode support
-- Crisp sub-pixel rendering with `Math.round` coordinate snapping
+### 🌓 Premium Experience
+- **Technical Dark Theme** — Optimized for long creative sessions with high-contrast technical details.
+- **Interactive Gallery** — A draggable, physics-based showcase of community masterpieces.
+- **Session-Aware Workspace** — Personalized dashboard and project management via secure authentication.
+- **Responsive Layout** — A stabilized, professional UI that adapts to your workflow.
 
-### 💾 Project Management
-- Save projects with a PNG thumbnail preview
-- All projects are **persisted in `localStorage`** (survives page refresh)
-- Click any saved project to **restore** it instantly
-- Saving an open project **overwrites** instead of creating a duplicate
-- Delete saved projects with a confirmation prompt
-
-### 🎬 Animation Mode
-- Multi-frame timeline editor
-- Add frames and switch between them
-- FPS control
-- Onion skinning toggle
-- Per-frame canvas state
-
-### 📤 Export
-- **Export PNG** — Full-resolution canvas download
-- **Export SVG** — Scalable vector with per-pixel rects
-
-### ⌨️ Keyboard Shortcuts
-| Shortcut | Action |
-|---|---|
-| `Ctrl/Cmd + Z` | Undo |
-| `Ctrl/Cmd + Shift + Z` | Redo |
-| `Ctrl/Cmd + S` | Save project |
-| `B` | Brush / Fill tool |
-| `E` | Eraser tool |
-| `[` | Decrease brush size |
-| `]` | Increase brush size |
+### 💾 Persistence & Export
+- **Cloud & Local Storage** — Secure project persistence with thumbnail previews.
+- **High-Fidelity Export** — Export your creations as crisp PNGs or scalable SVGs.
 
 ---
 
-## 🧱 Tech Stack
+## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | React 18 |
-| Build Tool | Vite 6 |
-| Styling | Tailwind CSS v4 |
-| UI Primitives | shadcn/ui (Radix UI) |
-| Icons | Lucide React |
-| Language | TypeScript |
-
----
-
-## 📁 Project Structure
-
-```
-src/
-├── App.tsx                          # Root application state & layout
-├── main.tsx                         # Entry point
-├── components/
-│   ├── canvas/
-│   │   └── CanvasArea.tsx           # HTML5 Canvas renderer & interactions
-│   ├── common/
-│   │   ├── ColorPicker.tsx          # Reusable colour picker component
-│   │   └── ShortcutsList.tsx        # Keyboard shortcuts reference UI
-│   ├── layout/
-│   │   └── TopNavigation.tsx        # Top nav bar (mode toggle, dark mode)
-│   ├── panels/
-│   │   ├── ToolsPanel.tsx           # Left panel (draw mode)
-│   │   ├── SavedFilesPanel.tsx      # Right panel (saved projects)
-│   │   ├── AnimationLeftPanel.tsx   # Left panel (animate mode)
-│   │   ├── AnimationRightPanel.tsx  # Right panel (animate mode)
-│   │   └── AnimationTimeline.tsx    # Bottom frame timeline
-│   └── ui/
-│       ├── CustomNumberInput.tsx    # Increment/decrement number field
-│       └── DiscreteSlider.tsx       # Step-based slider component
-├── hooks/
-│   ├── usePixelHistory.ts           # Undo/redo pixel state stack
-│   └── useGlobalShortcuts.ts        # Keyboard event bindings
-├── utils/
-│   ├── color.ts                     # HSV ↔ HEX ↔ RGB conversions
-│   └── export.ts                    # PNG & SVG export helpers
-└── styles/
-    ├── index.css                    # Global styles & font imports
-    ├── tailwind.css                 # Tailwind v4 entry
-    └── theme.css                    # CSS custom properties / tokens
-```
+- **Framework:** Next.js 14 (App Router)
+- **Styling:** Tailwind CSS 4.0
+- **Animations:** Framer Motion 12
+- **Authentication:** NextAuth.js (GitHub & Google)
+- **Icons:** Lucide React
+- **Database:** Mongoose / MongoDB
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js** v18 or higher
-- **npm** v9 or higher
+- **Node.js** v20 or higher
+- **npm** or **pnpm**
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/manish1803/pixel-art.git
-cd pixel-art
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/manish1803/pixel-art.git
+   cd pixel-art
+   ```
 
-# Install dependencies
-npm install
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-# Start the development server
-npm run dev
-```
+3. **Configure environment variables:**
+   Create a `.env.local` file based on `.env.local.example` and add your database and auth credentials.
 
-The app will be available at `http://localhost:5173`.
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
 
-### Build for Production
-
-```bash
-npm run build
-```
-
-The production bundle will be output to the `dist/` folder.
+The application will be live at `http://localhost:3000`.
 
 ---
 
-## 🖥️ Browser Support
+## 📂 Project Structure
 
-| Browser | Drawing | EyeDropper API |
-|---|---|---|
-| Chrome / Edge 95+ | ✅ | ✅ |
-| Firefox | ✅ | ❌ (fallback to canvas picker) |
-| Safari | ✅ | ❌ (fallback to canvas picker) |
-
-> The EyeDropper API is a Chrome/Edge-only feature. A graceful fallback to the canvas colour picker is used in unsupported browsers.
+```text
+src/
+├── app/                  # Next.js App Router (Pages & API)
+├── components/
+│   ├── features/         # Core feature-specific components
+│   │   ├── canvas/       # Drawing engine and canvas area
+│   │   └── editor/       # Timeline, sidebars, and panels
+│   ├── landing/          # Landing page sections and UI
+│   └── shared/           # Reusable UI primitives and layouts
+├── lib/                  # Core logic, auth config, and utils
+└── hooks/                # Custom React hooks (shortcuts, history, etc.)
+```
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, issues and feature requests are welcome!
+We welcome contributions from the community!
 
-1. Fork the repository
-2. Create your feature branch: 
-```
-git checkout -b feat/your-feature
-```
-3. Commit your changes:
-```
-git commit -m 'feat: add some feature'
-```
-4. Push to the branch:
-```
-git push origin feat/your-feature
-```
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ---
 
-
 ## 📝 License
 
-This project is open source and available under the [MIT License](LICENSE).
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+<p align="center">
+  Built with precision by the PIXEL.ART Team.
+</p>

@@ -46,7 +46,7 @@ export const ToolsPanel = React.memo(function ToolsPanel({ tool, setTool, color,
           <button
             onClick={() => setTool('fill')}
             className={`flex-1 py-3 border text-[10px] font-bold uppercase tracking-widest transition-colors ${
-              tool === 'fill' ? 'bg-panel border-foreground text-foreground' : 'bg-transparent border-border text-foreground opacity-40'
+              tool === 'fill' ? 'bg-accent/10 border-accent text-accent' : 'bg-transparent border-border text-foreground opacity-40'
             }`}
           >
             FILL
@@ -54,7 +54,7 @@ export const ToolsPanel = React.memo(function ToolsPanel({ tool, setTool, color,
           <button
             onClick={() => setTool('erase')}
             className={`flex-1 py-3 border text-[10px] font-bold uppercase tracking-widest transition-colors ${
-              tool === 'erase' ? 'bg-panel border-foreground text-foreground' : 'bg-transparent border-border text-foreground opacity-40'
+              tool === 'erase' ? 'bg-accent/10 border-accent text-accent' : 'bg-transparent border-border text-foreground opacity-40'
             }`}
           >
             ERASE

@@ -250,11 +250,8 @@ function EditorContent() {
     onAdjustBrush: handleAdjustBrush,
   });
 
-  const bgColor = darkMode ? '#0B0B0B' : '#ffffff';
-  const textColor = darkMode ? '#EAEAEA' : '#1a1a1a';
-
   return (
-    <div className="h-screen flex flex-col" style={{ fontFamily: "'Geist Mono', monospace", backgroundColor: bgColor, color: textColor }}>
+    <div className="h-screen flex flex-col bg-background text-foreground transition-colors duration-300" style={{ fontFamily: "'Geist Mono', monospace" }}>
       <TopNavigation
         mode={mode}
         setMode={setMode}
@@ -267,10 +264,9 @@ function EditorContent() {
 
       {/* Auto-save status indicator */}
       <div className="absolute top-[18px] left-1/2 -translate-x-1/2 pointer-events-none z-[60]">
-        <div className={`px-4 py-1.5 border transition-all duration-500 flex items-center gap-2 ${saving ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}
-          style={{ backgroundColor: darkMode ? '#1A1A1A' : '#F5F5F5', borderColor: darkMode ? '#333' : '#ddd' }}>
-          <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" />
-          <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: darkMode ? '#888' : '#666' }}>
+        <div className={`px-4 py-1.5 border transition-all duration-500 flex items-center gap-2 bg-panel border-border ${saving ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
+          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">
             Saving to {isAuthenticated ? 'Cloud' : 'Drafts'}
           </span>
         </div>
@@ -279,18 +275,20 @@ function EditorContent() {
       <div className="flex-1 flex overflow-hidden">
         {mode === 'draw' ? (
           <>
-            <ToolsPanel
-              tool={tool}
-              setTool={setTool}
-              color={color}
-              setColor={setColor}
-              brushSize={brushSize}
-              setBrushSize={setBrushSize}
-              recentColors={recentColors}
-              addRecentColor={addRecentColor}
-              darkMode={darkMode}
-              onNewProject={handleNewProject}
-            />
+            <div className="shrink-0 h-full">
+              <ToolsPanel
+                tool={tool}
+                setTool={setTool}
+                color={color}
+                setColor={setColor}
+                brushSize={brushSize}
+                setBrushSize={setBrushSize}
+                recentColors={recentColors}
+                addRecentColor={addRecentColor}
+                darkMode={darkMode}
+                onNewProject={handleNewProject}
+              />
+            </div>
 
             <CanvasArea
               projectName={projectName}
@@ -333,7 +331,7 @@ function EditorContent() {
               addRecentColor={addRecentColor}
             />
 
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
               <CanvasArea
                 projectName={projectName}
                 setProjectName={setProjectName}
@@ -360,6 +358,7 @@ function EditorContent() {
 
               <AnimationTimeline
                 frames={frames}
+                setFrames={setFrames}
                 currentFrame={currentFrame}
                 setCurrentFrame={setCurrentFrame}
                 onAddFrame={handleAddFrame}

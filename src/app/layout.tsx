@@ -36,9 +36,9 @@ export const metadata: Metadata = {
     images: ['/preview.png'],
   },
   icons: {
-    icon: '/pixel-art.svg',
-    shortcut: '/pixel-art.svg',
-    apple: '/pixel-art.svg',
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
   },
   robots: {
     index: true,
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         <SessionProvider>
           {children}
