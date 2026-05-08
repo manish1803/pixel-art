@@ -3,7 +3,7 @@ import { SessionProvider } from 'next-auth/react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://pixelart-editor.vercel.app'), // Replace with actual production URL
+  metadataBase: new URL('https://pixelart-merlin.vercel.app'), // Replace with actual production URL
   title: {
     default: 'Pixel Art Editor',
     template: '%s | Pixel Art Editor',

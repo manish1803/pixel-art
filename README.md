@@ -19,6 +19,14 @@
 
 PIXEL.ART is a premium creative suite designed for pixel artists and game developers. It combines the power of a desktop application with the accessibility of a web environment, featuring a technical dark theme, real-time rendering, and advanced animation tools.
 
+## 📸 Preview
+
+### Landing Page
+![Landing Page Preview](public/landing-preview.png)
+
+### Editor Workspace
+![Editor Workspace Preview](public/preview.png)
+
 ## ✨ Features
 
 ### 🖌️ Professional Drawing Suite
