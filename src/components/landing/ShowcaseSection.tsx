@@ -13,7 +13,7 @@ export function ShowcaseSection() {
   ];
 
   return (
-    <section id="gallery" className="section-padding bg-surface-sunken overflow-hidden">
+    <section id="gallery" className="py-32 bg-surface-sunken overflow-visible">
       <div className="content-container">
         <div className="flex flex-col items-center text-center mb-12">
             <div className="max-w-xl">

@@ -23,33 +23,26 @@ interface Folder {
   name: string;
 }
 
-export default function DashboardPage() {
+export default function DashboardPage({ initialProjects = [], initialFolders = [] }: { initialProjects?: Project[], initialFolders?: Folder[] }) {
   const router = useRouter();
   const { data: session, status } = useSession();
   const isAuthenticated = !!session?.user?.id;
 
   const [darkMode, setDarkMode] = useState(true);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [folders, setFolders] = useState<Folder[]>(initialFolders);
+  const [loading, setLoading] = useState(status === 'loading');
 
   // ─── Load projects ──────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'loading') return;
 
     if (isAuthenticated) {
-      setLoading(true);
-      Promise.all([
-        fetch('/api/projects', { cache: 'no-store' }).then((r) => r.json()),
-        fetch('/api/folders', { cache: 'no-store' }).then((r) => r.json()),
-      ])
-        .then(([pRes, fRes]) => {
-          if (pRes.success) setProjects(pRes.data);
-          if (fRes.success) setFolders(fRes.data);
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      // We rely on initial data from the server.
+      // If we need to refresh, we can trigger a manual fetch, but for quick load we use props.
+      setLoading(false);
     } else {
+      // Guest mode loads from localStorage
       const saved = localStorage.getItem('pixel-art-projects');
       setProjects(saved ? JSON.parse(saved) : []);
       setFolders([]); // No folders in guest mode for now

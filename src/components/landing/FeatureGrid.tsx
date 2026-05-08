@@ -8,6 +8,7 @@ import {
     IconArtboard, 
     IconDownload 
 } from "@tabler/icons-react";
+import { FadeInSection } from "../shared/FadeInSection";
 
 export function FeatureGrid() {
   const features = [
@@ -55,15 +56,17 @@ export function FeatureGrid() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
           {features.map((feature, i) => (
-            <div key={i} className="group">
-              <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-accent mb-6 transition-all group-hover:bg-accent group-hover:text-background group-hover:scale-110">
-                {feature.icon}
+            <FadeInSection key={i} delay={i * 0.1} direction="up">
+              <div className="group">
+                <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-accent mb-6 transition-all group-hover:bg-accent group-hover:text-background group-hover:scale-110">
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-bold mb-3">{feature.title}</h3>
+                <p className="text-text-muted leading-relaxed text-sm">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="text-lg font-bold mb-3">{feature.title}</h3>
-              <p className="text-text-muted leading-relaxed text-sm">
-                {feature.description}
-              </p>
-            </div>
+            </FadeInSection>
           ))}
         </div>
       </div>
