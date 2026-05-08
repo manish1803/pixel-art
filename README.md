@@ -123,5 +123,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <p align="center">
-  Built with precision by the PIXEL.ART Team.
+  Developed with precision by <a href="https://github.com/manish1803">Manish Patil</a>.
+  <br />
+  <strong>PIXEL.ART</strong> is an open-source project — contributions and feature requests are always welcome.
 </p>

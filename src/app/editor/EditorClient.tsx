@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TopNavigation } from '@/components/shared/layout/TopNavigation';
 import { ToolsPanel } from '@/components/features/editor/panels/ToolsPanel';
 import { CanvasArea } from '@/components/features/canvas/CanvasArea';
@@ -40,6 +41,15 @@ function EditorContent() {
   const [frames, setFrames] = useState([{ id: 1, pixels: {} as { [key: string]: string } }]);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [showMobileWarning, setShowMobileWarning] = useState(false);
+
+  // Check for mobile screen on mount
+  useEffect(() => {
+    const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      setShowMobileWarning(true);
+    }
+  }, []);
 
   // Load project from sessionStorage when navigating from dashboard
   useEffect(() => {
@@ -252,6 +262,51 @@ function EditorContent() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground transition-colors duration-300" style={{ fontFamily: "'Geist Mono', monospace" }}>
+      <AnimatePresence>
+        {showMobileWarning && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="max-w-md w-full bg-[#141414] border border-white/10 rounded-xl p-6 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-white">Desktop Recommended</h3>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-0.5">Precision Workspace</p>
+                </div>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed mb-6">
+                This editor is optimized for larger screens and precision input (like a mouse or stylus). For the best experience while creating or animating, we recommend using a laptop or desktop computer.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={() => setShowMobileWarning(false)}
+                  className="flex-1 btn-primary py-2.5 text-xs font-bold uppercase tracking-widest rounded-lg"
+                >
+                  Continue Anyway
+                </button>
+                <button 
+                  onClick={() => router.push('/projects')}
+                  className="flex-1 btn-secondary py-2.5 text-xs font-bold uppercase tracking-widest rounded-lg"
+                >
+                  Go to Dashboard
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <TopNavigation
         mode={mode}
         setMode={setMode}
