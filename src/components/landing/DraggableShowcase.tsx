@@ -22,6 +22,7 @@ interface CardState extends ShowcaseItem {
 
 export function DraggableShowcase({ items }: DraggableShowcaseProps) {
   const [cards, setCards] = useState<CardState[]>([]);
+  const itemsSignature = JSON.stringify(items);
 
   // Fix Hydration mismatch by generating random values only on the client
   useEffect(() => {
@@ -34,7 +35,7 @@ export function DraggableShowcase({ items }: DraggableShowcaseProps) {
         yOffset: Math.random() * 80 - 40,
       }))
     );
-  }, [items]);
+  }, [itemsSignature]);
 
   return (
     <div className="relative w-full h-[650px] md:h-[750px] flex items-center justify-center overflow-visible select-none">

@@ -29,10 +29,10 @@ export function RoadmapSection() {
       <div className="content-container">
         <FadeInSection direction="up">
           <div className="max-w-2xl mb-24">
-              <h2 className="text-sm font-bold text-accent uppercase tracking-[0.2em] mb-4">Future Vision</h2>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+              <span className="text-sm font-bold text-accent uppercase tracking-[0.2em] mb-4 block">Future Vision</span>
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
                   Roadmap to perfection.
-              </h1>
+              </h2>
           </div>
         </FadeInSection>
         

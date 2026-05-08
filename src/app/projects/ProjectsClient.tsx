@@ -31,7 +31,7 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
   const [darkMode, setDarkMode] = useState(true);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [loading, setLoading] = useState(status === 'loading');
+  const [loading, setLoading] = useState(status === 'loading' && initialProjects.length === 0 && initialFolders.length === 0);
 
   // ─── Load projects ──────────────────────────────────────────────────
   useEffect(() => {

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 export default function Loading() {
   return (
-    <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-[100]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+    <div className="fixed inset-0 bg-[#0B0B0B] flex flex-col items-center justify-center z-[100]" style={{ fontFamily: "'Geist Mono', monospace" }} role="status" aria-label="Loading, initializing workspace">
       {/* Background Ambience */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/5 blur-[100px] rounded-full pointer-events-none" />
       
@@ -17,7 +17,7 @@ export default function Loading() {
               scale: [0.95, 1, 0.95]
             }}
             transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
-            className="w-4 h-4 bg-foreground/10 rounded-sm"
+            className="w-4 h-4 bg-white/10 rounded-sm"
           />
           <motion.div 
             animate={{ 
@@ -33,7 +33,7 @@ export default function Loading() {
               scale: [0.95, 1, 0.95]
             }}
             transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
-            className="w-4 h-4 bg-foreground/5 rounded-sm"
+            className="w-4 h-4 bg-white/5 rounded-sm"
           />
           <motion.div 
             animate={{ 
@@ -41,12 +41,12 @@ export default function Loading() {
               scale: [0.95, 1, 0.95]
             }}
             transition={{ duration: 1.5, repeat: Infinity, delay: 0.9 }}
-            className="w-4 h-4 bg-foreground/20 rounded-sm"
+            className="w-4 h-4 bg-white/20 rounded-sm"
           />
         </div>
 
         {/* Loading Text */}
-        <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-foreground mb-2">
+        <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white mb-2">
           PIXEL.ART
         </h2>
         <div className="flex items-center gap-2">
