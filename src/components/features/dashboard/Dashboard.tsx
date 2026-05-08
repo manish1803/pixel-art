@@ -208,7 +208,6 @@ export function Dashboard({
           </button>
 
           <UserMenu
-            darkMode={darkMode}
             onSignIn={() => router.push('/auth/signin?callbackUrl=/projects')}
           />
         </div>
