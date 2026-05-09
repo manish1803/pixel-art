@@ -38,9 +38,17 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
     if (status === 'loading') return;
 
     if (isAuthenticated) {
-      // We rely on initial data from the server.
-      // If we need to refresh, we can trigger a manual fetch, but for quick load we use props.
-      setLoading(false);
+      // Background fetch to update data silently (Stale-While-Revalidate)
+      Promise.all([
+        fetch('/api/projects', { cache: 'no-store' }).then((r) => r.json()),
+        fetch('/api/folders', { cache: 'no-store' }).then((r) => r.json()),
+      ])
+        .then(([pRes, fRes]) => {
+          if (pRes.success) setProjects(pRes.data);
+          if (fRes.success) setFolders(fRes.data);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
     } else {
       // Guest mode loads from localStorage
       const saved = localStorage.getItem('pixel-art-projects');
