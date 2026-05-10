@@ -1,11 +1,14 @@
 import { Metadata } from 'next';
+import dynamic from 'next/dynamic';
 import { Navbar } from '@/components/landing/Navbar';
 import { HeroSection } from '@/components/landing/HeroSection';
-import { FeatureGrid } from '@/components/landing/FeatureGrid';
-import { ShowcaseSection } from '@/components/landing/ShowcaseSection';
-import { RoadmapSection } from '@/components/landing/RoadmapSection';
-import { CTASection } from '@/components/landing/CTASection';
-import { Footer } from '@/components/landing/Footer';
+
+// Dynamically import components below the fold to improve initial load and smoothness
+const FeatureGrid = dynamic(() => import('@/components/landing/FeatureGrid').then(mod => mod.FeatureGrid));
+const ShowcaseSection = dynamic(() => import('@/components/landing/ShowcaseSection').then(mod => mod.ShowcaseSection));
+const RoadmapSection = dynamic(() => import('@/components/landing/RoadmapSection').then(mod => mod.RoadmapSection));
+const CTASection = dynamic(() => import('@/components/landing/CTASection').then(mod => mod.CTASection));
+const Footer = dynamic(() => import('@/components/landing/Footer').then(mod => mod.Footer));
 
 export const metadata: Metadata = {
   title: 'PIXEL.ART',

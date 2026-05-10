@@ -74,7 +74,22 @@ export const ToolsPanel = React.memo(function ToolsPanel({ tool, setTool, color,
 
       <PanelSection title="Brush Size">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[10px] font-bold text-foreground">{brushSize} px</div>
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              value={brushSize}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (!isNaN(val) && val >= 1 && val <= 16) {
+                  setBrushSize(val);
+                }
+              }}
+              className="w-12 bg-transparent border border-border text-[10px] font-bold text-foreground p-1 text-center focus:outline-none focus:border-accent"
+              min={1}
+              max={16}
+            />
+            <span className="text-[10px] font-bold text-foreground opacity-40">PX</span>
+          </div>
         </div>
         <DiscreteSlider 
           value={brushSize}

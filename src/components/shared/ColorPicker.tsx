@@ -37,7 +37,7 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
     const newColor = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
     setColor(newColor);
     setHsv(hexToHsv(newColor));
-    addRecentColor(newColor);
+    // Removed addRecentColor here to prevent adding intermediate colors while typing
   };
 
   const handleSaturationDown = (e: React.PointerEvent) => {
@@ -162,19 +162,22 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
               type="number" 
               value={rgb.r}
               onChange={(e) => handleRgbChange('r', parseInt(e.target.value) || 0)}
-              className="flex-1 border border-border bg-transparent text-center text-[10px] font-bold focus:outline-none text-foreground" 
+              onBlur={() => addRecentColor(color)}
+              className="flex-1 min-w-0 border border-border bg-transparent text-center text-[10px] font-bold focus:outline-none text-foreground" 
             />
             <input 
               type="number" 
               value={rgb.g}
               onChange={(e) => handleRgbChange('g', parseInt(e.target.value) || 0)}
-              className="flex-1 border border-border bg-transparent text-center text-[10px] font-bold focus:outline-none text-foreground" 
+              onBlur={() => addRecentColor(color)}
+              className="flex-1 min-w-0 border border-border bg-transparent text-center text-[10px] font-bold focus:outline-none text-foreground" 
             />
             <input 
               type="number" 
               value={rgb.b}
               onChange={(e) => handleRgbChange('b', parseInt(e.target.value) || 0)}
-              className="flex-1 border border-border bg-transparent text-center text-[10px] font-bold focus:outline-none text-foreground" 
+              onBlur={() => addRecentColor(color)}
+              className="flex-1 min-w-0 border border-border bg-transparent text-center text-[10px] font-bold focus:outline-none text-foreground" 
             />
           </>
         ) : (
@@ -187,9 +190,9 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
               if (/^#[0-9a-fA-F]{6}$/i.test(val)) {
                 setRgb(hexToRgb(val));
                 setHsv(hexToHsv(val));
-                addRecentColor(val);
               }
             }}
+            onBlur={() => addRecentColor(color)}
             className="flex-1 border border-border bg-transparent text-center text-[10px] font-bold focus:outline-none text-foreground" 
           />
         )}
