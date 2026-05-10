@@ -103,7 +103,7 @@ function EditorContent() {
   }, []);
 
   const addRecentColor = useCallback((newColor: string) => {
-    setRecentColors(prev => [newColor, ...prev.filter(c => c !== newColor)].slice(0, 18));
+    setRecentColors(prev => [newColor, ...prev.filter(c => c.toLowerCase() !== newColor.toLowerCase())].slice(0, 18));
   }, []);
 
   const handleNewProject = useCallback(() => {

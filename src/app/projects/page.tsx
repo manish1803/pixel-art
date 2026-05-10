@@ -1,8 +1,5 @@
 import { Metadata } from 'next';
 import ProjectsClient from './ProjectsClient';
-import { auth } from '@/lib/auth/auth';
-import { getProjectsByUser } from '@/services/project.service';
-import { getFoldersByUser } from '@/services/folder.service';
 
 export const metadata: Metadata = {
   title: 'My Projects',
@@ -13,24 +10,9 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function ProjectsPage() {
-  const session = await auth();
-  const userId = session?.user?.id;
-  
-  let initialProjects = [];
-  let initialFolders = [];
-  
-  if (userId) {
-    try {
-      // Fetch data on the server to eliminate loading spinners and waterfalls
-      [initialProjects, initialFolders] = await Promise.all([
-        getProjectsByUser(userId),
-        getFoldersByUser(userId)
-      ]);
-    } catch (error) {
-      console.error('Failed to fetch initial projects/folders on server:', error);
-    }
-  }
-  
-  return <ProjectsClient initialProjects={initialProjects} initialFolders={initialFolders} />;
+export default function ProjectsPage() {
+  // We removed the server-side fetch here because in a serverless environment (like Vercel),
+  // database connections and cold starts can block the initial page load, making the transition
+  // feel slow. By making this a pure client-side load with an instant shell, the app feels much more responsive.
+  return <ProjectsClient initialProjects={[]} initialFolders={[]} />;
 }
