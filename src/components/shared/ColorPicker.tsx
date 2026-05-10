@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Pipette, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@radix-ui/react-collapsible';
 import { hexToHsv, hsvToHex, hexToRgb, rgbToHex } from '@/lib/utils/color';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface ColorPickerProps {
   color: string;
@@ -101,15 +102,16 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
     <div className="border border-border p-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-foreground">COLOUR PICKER</div>
-        <button 
-          className={`p-1.5 rounded-sm transition-all border ${
-            isPickerActive ? 'bg-accent/10 border-accent text-accent' : 'border-transparent opacity-40 hover:opacity-100 hover:bg-panel text-foreground'
-          }`}
-          onClick={onPickColor}
-          title="Pick color from canvas"
-        >
-          <Pipette className="w-3.5 h-3.5" />
-        </button>
+        <Tooltip content="Pick color from canvas" shortcut="I">
+          <button 
+            className={`p-1.5 rounded-sm transition-all border ${
+              isPickerActive ? 'bg-accent/10 border-accent text-accent' : 'border-transparent opacity-40 hover:opacity-100 hover:bg-panel text-foreground'
+            }`}
+            onClick={onPickColor}
+          >
+            <Pipette className="w-3.5 h-3.5" />
+          </button>
+        </Tooltip>
       </div>
       
       {/* Saturation Box */}

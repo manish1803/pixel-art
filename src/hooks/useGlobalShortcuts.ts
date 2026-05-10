@@ -7,6 +7,8 @@ interface GlobalShortcutsConfig {
   onClear: () => void;
   onSetTool: (tool: 'fill' | 'erase' | 'picker') => void;
   onAdjustBrush: (increment: boolean) => void;
+  onToggleCommandPalette: () => void;
+  onToggleShortcuts: () => void;
 }
 
 export function useGlobalShortcuts({
@@ -15,7 +17,9 @@ export function useGlobalShortcuts({
   onSave,
   onClear,
   onSetTool,
-  onAdjustBrush
+  onAdjustBrush,
+  onToggleCommandPalette,
+  onToggleShortcuts
 }: GlobalShortcutsConfig) {
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -34,6 +38,12 @@ export function useGlobalShortcuts({
       } else if (cmd && e.key.toLowerCase() === 's') {
         e.preventDefault();
         onSave();
+      } else if (cmd && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        onToggleCommandPalette();
+      } else if (cmd && e.key === '/') {
+        e.preventDefault();
+        onToggleShortcuts();
       } else if (cmd && e.key.toLowerCase() === 'x') {
         e.preventDefault();
         onClear();
@@ -60,5 +70,5 @@ export function useGlobalShortcuts({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onUndo, onRedo, onSave, onClear, onSetTool, onAdjustBrush]);
+  }, [onUndo, onRedo, onSave, onClear, onSetTool, onAdjustBrush, onToggleCommandPalette, onToggleShortcuts]);
 }

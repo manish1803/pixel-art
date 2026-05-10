@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { PanelContainer, PanelSection } from '@/components/shared/PanelBase';
+import { CustomNumberInput } from '@/components/ui/CustomNumberInput';
+import { MiniMap } from './MiniMap';
 
 interface Frame {
   id: number;
@@ -11,51 +13,34 @@ interface Frame {
 interface AnimationRightPanelProps {
   frames: Frame[];
   gridSize: number;
-  isPlaying: boolean;
-  setIsPlaying: (value: boolean) => void;
+  setGridSize: (size: number) => void;
   currentFrame: number;
-  setCurrentFrame: (index: number) => void;
-  totalFrames: number;
-  fps: number;
+  onionSkin: boolean;
+  setOnionSkin: (value: boolean) => void;
   darkMode: boolean;
   onExportPNG: () => void;
   onExportSVG: () => void;
+  zoom: number;
+  pan: { x: number; y: number };
+  setPan: (pan: { x: number; y: number }) => void;
 }
 
 export function AnimationRightPanel({
   frames,
   gridSize,
-  isPlaying,
-  setIsPlaying,
+  setGridSize,
   currentFrame,
-  setCurrentFrame,
-  totalFrames,
-  fps,
+  onionSkin,
+  setOnionSkin,
   darkMode,
   onExportPNG,
   onExportSVG,
+  zoom,
+  pan,
+  setPan,
 }: AnimationRightPanelProps) {
   const [exportOpen, setExportOpen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playbackRef = useRef<number>(currentFrame);
-
-  // Sync playback ref with prop
-  useEffect(() => {
-    playbackRef.current = currentFrame;
-  }, [currentFrame]);
-
-  // Animation Playback Logic
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    const interval = setInterval(() => {
-      const nextFrame = (playbackRef.current + 1) % totalFrames;
-      playbackRef.current = nextFrame;
-      setCurrentFrame(nextFrame);
-    }, 1000 / fps);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, totalFrames, fps, setCurrentFrame]);
 
   // Render Preview Frame
   useEffect(() => {
@@ -96,33 +81,45 @@ export function AnimationRightPanel({
             className="relative z-10 [image-rendering:pixelated] w-full h-full"
           />
         </div>
+      </PanelSection>
 
+      <PanelSection title="Navigator">
+        <MiniMap
+          frames={frames}
+          currentFrame={currentFrame}
+          gridSize={gridSize}
+          zoom={zoom}
+          pan={pan}
+          setPan={setPan}
+          darkMode={darkMode}
+        />
+      </PanelSection>
+
+      <PanelSection title="Document Settings">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-center gap-2">
-            <button 
-              onClick={() => setCurrentFrame((currentFrame - 1 + totalFrames) % totalFrames)}
-              className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M12 0L0 6L12 12V0Z"/></svg>
-            </button>
-            <button onClick={() => setIsPlaying(!isPlaying)} className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-foreground">
-              {isPlaying ? (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0H4V12H0V0ZM8 0H12V12H8V0Z"/></svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0L12 6L0 12V0Z"/></svg>
-              )}
-            </button>
-            <button 
-              onClick={() => setCurrentFrame((currentFrame + 1) % totalFrames)}
-              className="w-10 h-10 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M0 0L12 6L0 12V0Z"/><path d="M10 0H12V12H10V0Z"/></svg>
-            </button>
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-bold uppercase text-foreground">Canvas Size</div>
+            <CustomNumberInput 
+              value={`${gridSize} X ${gridSize}`}
+              onIncrement={() => setGridSize(Math.min(64, gridSize + 8))}
+              onDecrement={() => setGridSize(Math.max(8, gridSize - 8))}
+            />
           </div>
-
-          <div className="text-right space-y-0.5">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-foreground">{fps} FPS</div>
-            <div className="text-[9px] font-bold uppercase opacity-40 text-foreground">Frame {currentFrame + 1} of {totalFrames}</div>
+          
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-bold uppercase text-foreground">Onion Skin</div>
+            <button 
+              onClick={() => setOnionSkin(!onionSkin)}
+              className={`w-12 h-6 border flex items-center px-1 border-border transition-colors ${
+                onionSkin ? 'bg-panel' : 'bg-transparent'
+              }`}
+            >
+              <div 
+                className={`w-4 h-4 transition-transform shadow-sm ${
+                  onionSkin ? 'translate-x-6 bg-foreground' : 'translate-x-0 bg-muted'
+                }`}
+              />
+            </button>
           </div>
         </div>
       </PanelSection>

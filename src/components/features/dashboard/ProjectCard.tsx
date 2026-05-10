@@ -173,7 +173,7 @@ export function ProjectCard({
 
       {/* Card Footer */}
       <div className="px-3 py-2.5 border-t border-border relative">
-        <div className="text-[10px] font-bold uppercase tracking-wider truncate text-foreground">
+        <div className="text-[10px] font-bold tracking-wider truncate text-foreground">
           {project.name || 'Untitled'}
         </div>
         <div className="flex items-center justify-between mt-0.5">

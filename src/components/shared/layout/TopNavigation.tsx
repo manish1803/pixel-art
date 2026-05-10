@@ -1,29 +1,37 @@
 'use client';
-import { Coffee } from 'lucide-react';
+import { Coffee, Undo2, Redo2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { UserMenu } from './UserMenu';
 import { Logo } from '../Logo';
 
 interface TopNavigationProps {
-  mode: 'draw' | 'animate';
-  setMode: (mode: 'draw' | 'animate') => void;
+  onUndo: () => void;
+  onRedo: () => void;
   darkMode: boolean;
   setDarkMode: (value: boolean) => void;
   onBackToDashboard: () => void;
   projectName: string;
   setProjectName: (name: string) => void;
+  onOpenShortcuts: () => void;
 }
 
 export function TopNavigation({ 
-  mode, 
-  setMode, 
+  onUndo,
+  onRedo,
   darkMode, 
   setDarkMode, 
   onBackToDashboard,
   projectName,
-  setProjectName
+  setProjectName,
+  onOpenShortcuts
 }: TopNavigationProps) {
   const router = useRouter();
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(typeof window !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+  }, []);
 
   return (
     <nav className="h-16 border-b border-border bg-background flex items-center justify-between px-8 text-foreground transition-colors duration-300">
@@ -42,27 +50,25 @@ export function TopNavigation({
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
             placeholder="Untitled Project"
-            className="w-full bg-transparent border-0 outline-none text-[11px] font-bold uppercase tracking-wider focus:ring-0 placeholder:opacity-30 text-foreground"
+            className="w-full bg-transparent border-0 outline-none text-[11px] font-bold tracking-wider focus:ring-0 placeholder:opacity-30 text-foreground"
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border border-border p-1 bg-panel/50">
+      <div className="flex items-center gap-2">
         <button
-          onClick={() => setMode('draw')}
-          className={`px-8 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-            mode === 'draw' ? 'bg-panel border border-border shadow-sm text-foreground' : 'opacity-40 text-foreground hover:opacity-100'
-          }`}
+          onClick={onUndo}
+          className="p-2 bg-panel border border-border hover:bg-accent/20 hover:text-accent hover:border-accent/30 transition-all shadow-sm"
+          title="Undo (Cmd+Z)"
         >
-          Draw
+          <Undo2 className="w-4 h-4" />
         </button>
         <button
-          onClick={() => setMode('animate')}
-          className={`px-8 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-            mode === 'animate' ? 'bg-panel border border-border shadow-sm text-foreground' : 'opacity-40 text-foreground hover:opacity-100'
-          }`}
+          onClick={onRedo}
+          className="p-2 bg-panel border border-border hover:bg-accent/20 hover:text-accent hover:border-accent/30 transition-all shadow-sm"
+          title="Redo (Cmd+Shift+Z)"
         >
-          Animate
+          <Redo2 className="w-4 h-4" />
         </button>
       </div>
 
@@ -78,6 +84,15 @@ export function TopNavigation({
             />
           </button>
         </div>
+
+        <button
+          onClick={onOpenShortcuts}
+          className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold tracking-widest text-muted hover:text-foreground transition-colors border border-border bg-panel/30"
+          title="Open Keyboard Shortcuts"
+        >
+          <span>Shortcuts</span>
+          <kbd className="font-mono text-[9px] bg-panel border border-border px-1 rounded">{isMac ? '⌘/' : 'Ctrl+/'}</kbd>
+        </button>
 
         <UserMenu 
           onSignIn={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent('/editor')}`)} 
