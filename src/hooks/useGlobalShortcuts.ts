@@ -5,10 +5,16 @@ interface GlobalShortcutsConfig {
   onRedo: () => void;
   onSave: () => void;
   onClear: () => void;
-  onSetTool: (tool: 'fill' | 'erase' | 'picker') => void;
+  onSetTool: (tool: 'fill' | 'erase' | 'picker' | 'selection') => void;
   onAdjustBrush: (increment: boolean) => void;
   onToggleCommandPalette: () => void;
   onToggleShortcuts: () => void;
+  onCopy: () => void;
+  onCut: () => void;
+  onPaste: () => void;
+  onTogglePlay?: () => void;
+  onNextFrame?: () => void;
+  onPrevFrame?: () => void;
 }
 
 export function useGlobalShortcuts({
@@ -19,7 +25,13 @@ export function useGlobalShortcuts({
   onSetTool,
   onAdjustBrush,
   onToggleCommandPalette,
-  onToggleShortcuts
+  onToggleShortcuts,
+  onCopy,
+  onCut,
+  onPaste,
+  onTogglePlay,
+  onNextFrame,
+  onPrevFrame
 }: GlobalShortcutsConfig) {
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -46,7 +58,13 @@ export function useGlobalShortcuts({
         onToggleShortcuts();
       } else if (cmd && e.key.toLowerCase() === 'x') {
         e.preventDefault();
-        onClear();
+        onCut();
+      } else if (cmd && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        onCopy();
+      } else if (cmd && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        onPaste();
       } else if (!cmd && !e.ctrlKey && !e.altKey) {
         switch (e.key.toLowerCase()) {
           case 'f':
@@ -57,6 +75,19 @@ export function useGlobalShortcuts({
             break;
           case 'i':
             onSetTool('picker');
+            break;
+          case 's':
+            onSetTool('selection');
+            break;
+          case ' ':
+            e.preventDefault();
+            onTogglePlay?.();
+            break;
+          case 'n':
+            onNextFrame?.();
+            break;
+          case 'b':
+            onPrevFrame?.();
             break;
           case '.':
             onAdjustBrush(true); // increment
@@ -70,5 +101,5 @@ export function useGlobalShortcuts({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onUndo, onRedo, onSave, onClear, onSetTool, onAdjustBrush, onToggleCommandPalette, onToggleShortcuts]);
+  }, [onUndo, onRedo, onSave, onClear, onSetTool, onAdjustBrush, onToggleCommandPalette, onToggleShortcuts, onCopy, onCut, onPaste, onTogglePlay, onNextFrame, onPrevFrame]);
 }

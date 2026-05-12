@@ -28,7 +28,7 @@ export function Footer() {
               <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">Product</h4>
               <ul className="space-y-3">
                 <li><Link href="/editor" className="text-xs text-text-muted hover:text-foreground transition-colors">Editor</Link></li>
-                <li><Link href="/projects" className="text-xs text-text-muted hover:text-foreground transition-colors">Dashboard</Link></li>
+                <li><Link href="/dashboard" className="text-xs text-text-muted hover:text-foreground transition-colors">Dashboard</Link></li>
                 <li><Link href="#features" className="text-xs text-text-muted hover:text-foreground transition-colors">Features</Link></li>
               </ul>
             </FadeInSection>

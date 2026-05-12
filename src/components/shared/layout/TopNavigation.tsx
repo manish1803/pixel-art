@@ -14,6 +14,10 @@ interface TopNavigationProps {
   projectName: string;
   setProjectName: (name: string) => void;
   onOpenShortcuts: () => void;
+  isLayeredMode?: boolean;
+  onToggleLayeredMode?: () => void;
+  saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
+  isOffline?: boolean;
 }
 
 export function TopNavigation({ 
@@ -24,7 +28,11 @@ export function TopNavigation({
   onBackToDashboard,
   projectName,
   setProjectName,
-  onOpenShortcuts
+  onOpenShortcuts,
+  isLayeredMode = false,
+  onToggleLayeredMode,
+  saveStatus,
+  isOffline = false
 }: TopNavigationProps) {
   const router = useRouter();
   const [isMac, setIsMac] = useState(false);
@@ -52,6 +60,24 @@ export function TopNavigation({
             placeholder="Untitled Project"
             className="w-full bg-transparent border-0 outline-none text-[11px] font-bold tracking-wider focus:ring-0 placeholder:opacity-30 text-foreground"
           />
+          <div className="flex items-center gap-2 ml-2">
+            {isOffline && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-red-500">
+                (Offline)
+              </span>
+            )}
+            {saveStatus && saveStatus !== 'idle' && (
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                saveStatus === 'saving' ? 'text-muted animate-pulse' :
+                saveStatus === 'saved' ? 'text-accent' :
+                'text-red-500'
+              }`}>
+                {saveStatus === 'saving' ? 'Saving...' :
+                 saveStatus === 'saved' ? 'Saved' :
+                 'Error'}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -73,6 +99,15 @@ export function TopNavigation({
       </div>
 
       <div className="flex items-center gap-6 ml-12">
+        {onToggleLayeredMode && (
+          <button
+            onClick={onToggleLayeredMode}
+            className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold tracking-widest text-muted hover:text-foreground transition-colors border border-border bg-panel/30"
+          >
+            {isLayeredMode ? 'Standard Mode' : 'Layered Mode'}
+          </button>
+        )}
+
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Dark Mode</span>
           <button

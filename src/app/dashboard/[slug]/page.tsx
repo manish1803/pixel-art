@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     title: project.name,
     description: `View ${project.name}, a pixel art project created on Pixel Art Editor. Grid size: ${project.gridSize}x${project.gridSize}.`,
     alternates: {
-      canonical: `https://pixelart-editor.vercel.app/projects/${params.slug}`,
+      canonical: `https://pixelart-editor.vercel.app/dashboard/${params.slug}`,
     },
     openGraph: {
       title: `${project.name} | Pixel Art Editor`,

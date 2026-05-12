@@ -62,7 +62,7 @@ export function ProjectCard({
           <img
             src={project.preview}
             alt={project.name}
-            className="w-full h-full object-contain [image-rendering:pixelated]"
+            className={`w-full h-full object-contain [image-rendering:pixelated] transition-transform duration-300 ${hovered ? 'scale-105' : 'scale-100'}`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center opacity-10">
@@ -177,8 +177,12 @@ export function ProjectCard({
           {project.name || 'Untitled'}
         </div>
         <div className="flex items-center justify-between mt-0.5">
-          <div className="text-[9px] uppercase tracking-widest opacity-40 text-foreground">
-            {project.date}
+          <div className="text-[9px] uppercase tracking-widest opacity-40 text-foreground flex gap-1.5">
+            <span>{project.date}</span>
+            <span>•</span>
+            <span>{project.gridSize}x{project.gridSize}</span>
+            <span>•</span>
+            <span>{project.frames?.length || 1}f</span>
           </div>
           {project.folderId && (
             <div className="text-[8px] font-bold uppercase tracking-tighter opacity-30 flex items-center gap-1 text-foreground">

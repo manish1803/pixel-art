@@ -50,7 +50,7 @@ export async function updateProject(userId: string, id: string, data: UpdateProj
   const doc = await Project.findOneAndUpdate(
     { _id: id, userId },
     { $set: data },
-    { new: true }
+    { returnDocument: 'after' }
   );
   return doc ? serialize(doc) : null;
 }
@@ -60,7 +60,7 @@ export async function moveProjectToFolder(userId: string, projectId: string, fol
   const doc = await Project.findOneAndUpdate(
     { _id: projectId, userId },
     { $set: { folderId } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   return doc ? serialize(doc) : null;
 }

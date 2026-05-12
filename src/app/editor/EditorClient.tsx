@@ -7,13 +7,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TopNavigation } from '@/components/shared/layout/TopNavigation';
 import { ToolsPanel } from '@/components/features/editor/panels/ToolsPanel';
 import { CanvasArea } from '@/components/features/canvas/CanvasArea';
-import { AnimationRightPanel } from '@/components/features/editor/panels/AnimationRightPanel';
+import { RightSidebar } from '@/components/features/editor/panels/RightSidebar';
 import { AnimationTimeline } from '@/components/features/editor/panels/AnimationTimeline';
 import { generatePNG, generateSVG } from '@/lib/utils/export';
 import { usePixelHistory } from '@/hooks/usePixelHistory';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { CommandPalette, Command } from '@/components/features/editor/CommandPalette';
 import { ShortcutsReference } from '@/components/features/editor/ShortcutsReference';
+import { useAnimationStore } from '@/hooks/useAnimationStore';
+import { CanvasLayered } from '@/components/features/canvas/CanvasLayered';
+import { FramesGrid } from '@/components/features/editor/panels/TimelineGrid';
+import { LayersPanel } from '@/components/features/editor/panels/LayersPanel';
+import { findCel } from '@/lib/models/animation';
 
 function EditorContent() {
   const router = useRouter();
@@ -22,11 +27,39 @@ function EditorContent() {
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user?.id;
 
+  const { state: animationState, updatePixels: updateAnimationPixels, addLayer, addFrame, deleteFrame, updateTransform, unlinkCel, clearCel, undo: undoLayered, redo: redoLayered, updateSelection, resetState, updateThumbnail } = useAnimationStore();
+  const [selectedFrameId, setSelectedFrameId] = useState('frame-1');
+  const [selectedLayerId, setSelectedLayerId] = useState('layer-1');
+
+  const getCompositedPixels = useCallback((frameId: string) => {
+    const pixels: { [key: string]: string } = {};
+    animationState.layers.forEach(layer => {
+      if (!layer.isVisible) return;
+      const cel = findCel(animationState, frameId, layer.id);
+      if (cel) {
+        const celData = animationState.celData[cel.dataId];
+        if (celData) {
+          Object.entries(celData.pixels || {}).forEach(([key, color]) => {
+            if (color) pixels[key] = color;
+          });
+        }
+      }
+    });
+    return pixels;
+  }, [animationState]);
+
+  const computedFrames = useMemo(() => {
+    return animationState.frames.map(frame => ({
+      id: frame.id,
+      pixels: getCompositedPixels(frame.id)
+    }));
+  }, [animationState, getCompositedPixels]);
+
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
-  const [tool, setTool] = useState<'fill' | 'erase' | 'picker'>('fill');
+  const [tool, setTool] = useState<'fill' | 'erase' | 'picker' | 'selection'>('fill');
   const [color, setColor] = useState('#ff0000');
   const [brushSize, setBrushSize] = useState(1);
   const [mirrorMode, setMirrorMode] = useState<'none' | 'vertical' | 'horizontal' | 'both'>('none');
@@ -42,8 +75,21 @@ function EditorContent() {
   const [onionSkin, setOnionSkin] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [showMobileWarning, setShowMobileWarning] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isOffline, setIsOffline] = useState(typeof window !== 'undefined' ? !navigator.onLine : false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Timeline resizing state
   const [timelineHeight, setTimelineHeight] = useState(220);
@@ -52,6 +98,27 @@ function EditorContent() {
   // Zoom & Pan State (Lifted for Mini-map)
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  const handleExportPNG = useCallback(async () => {
+    const pixels = getCompositedPixels(selectedFrameId);
+    const dataUrl = await generatePNG(pixels, gridSize, 600, darkMode ? '#000000' : '#ffffff');
+    const link = document.createElement('a');
+    link.download = `${projectName || 'pixel-art'}.png`;
+    link.href = dataUrl;
+    link.click();
+  }, [getCompositedPixels, selectedFrameId, gridSize, darkMode, projectName]);
+
+  const handleExportSVG = useCallback(() => {
+    const pixels = getCompositedPixels(selectedFrameId);
+    const svgContent = generateSVG(pixels, gridSize, 600);
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${projectName || 'pixel-art'}.svg`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [getCompositedPixels, selectedFrameId, gridSize, projectName]);
 
   const startTimelineDrag = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -107,7 +174,15 @@ function EditorContent() {
 
   // Fetch project from API if missing from sessionStorage (e.g. on refresh)
   useEffect(() => {
-    if (!projectId || currentProjectId || !isAuthenticated) return;
+    if (!projectId || !isAuthenticated) {
+      setIsHydrated(true);
+      return;
+    }
+
+    if (currentProjectId) {
+      setIsHydrated(true);
+      return;
+    }
 
     const fetchProject = async () => {
       try {
@@ -118,14 +193,44 @@ function EditorContent() {
           setCurrentProjectId(project.id);
           setProjectName(project.name);
           setGridSize(project.gridSize || 32);
-          if (project.frames?.length) {
+          if (project.animationState) {
+            resetState(project.animationState);
+            if (project.animationState.frames?.length > 0) {
+              setSelectedFrameId(project.animationState.frames[0].id);
+            }
+            if (project.animationState.layers?.length > 0) {
+              setSelectedLayerId(project.animationState.layers[0].id);
+            }
+          } else if (project.frames?.length) {
             setFramesWithoutHistory(project.frames);
+            
+            // Convert to new state
+            const layers = [{ id: 'layer-1', name: 'Layer 1', isVisible: true, isLocked: false }];
+            const frames: any[] = [];
+            const cels: any[] = [];
+            const celData: any = {};
+
+            project.frames.forEach((f: any, index: number) => {
+              const frameId = `frame-${index + 1}`;
+              frames.push({ id: frameId });
+              const dataId = `data-${index + 1}`;
+              celData[dataId] = { id: dataId, pixels: f.pixels || {} };
+              cels.push({ layerId: 'layer-1', frameId, dataId });
+            });
+
+            resetState({ layers, frames, cels, celData });
+            if (frames.length > 0) {
+              setSelectedFrameId(frames[0].id);
+            }
+            setSelectedLayerId('layer-1');
           } else if (project.pixels) {
             setFramesWithoutHistory([{ id: 1, pixels: project.pixels }]);
           }
         }
       } catch (e) {
         console.error('Failed to fetch project from API', e);
+      } finally {
+        setIsHydrated(true);
       }
     };
 
@@ -154,6 +259,11 @@ function EditorContent() {
   const handleAddFrame = useCallback(() => {
     setFrames([...frames, { id: Date.now(), pixels: {} }]);
   }, [frames, setFrames]);
+
+  const handleAddFrameLayered = useCallback((id: string, copyFromId?: string) => {
+    addFrame(id, copyFromId);
+    setSelectedFrameId(id);
+  }, [addFrame, setSelectedFrameId]);
 
   const handleDuplicateFrame = useCallback((index: number) => {
     const newFrames = [...frames];
@@ -184,13 +294,14 @@ function EditorContent() {
       date: new Date().toLocaleDateString(),
       preview,
       gridSize,
-      frames,
+      frames, // Legacy fallback
+      animationState, // New layered state
       isFavourite: false,
       isDraft: true, // Default to draft for auto-saves
       ...metadata
     };
 
-    if (isAuthenticated) {
+    if (isAuthenticated && !isOffline) {
       // ── Cloud save (MongoDB) ──────────────────────────────────────
       if (currentProjectId) {
         await fetch(`/api/projects/${currentProjectId}`, {
@@ -224,34 +335,72 @@ function EditorContent() {
         }
       });
     }
-  }, [isAuthenticated, projectName, gridSize, frames, currentProjectId, syncToLocalStorage]);
+  }, [isAuthenticated, projectName, gridSize, frames, animationState, currentProjectId, syncToLocalStorage, isOffline]);
 
   const performSave = useCallback(async (metadata: Partial<any> = {}) => {
-    setSaving(true);
+    setSaveStatus('saving');
     try {
-      const currentPixels = frames[currentFrame]?.pixels || {};
+      const thumbFrameId = animationState.thumbnailFrameId || (animationState.frames.length > 0 ? animationState.frames[0].id : null);
+      
+      let currentPixels = {};
+      if (thumbFrameId) {
+        currentPixels = getCompositedPixels(thumbFrameId);
+      }
+
       // Use 200px for cloud storage efficiency; 600px is wasteful for previews
       const previewSize = isAuthenticated ? 200 : 600;
       const preview = await generatePNG(currentPixels, gridSize, previewSize, darkMode ? '#0B0B0B' : '#ffffff');
       await handleSaveProject(preview, metadata);
-    } finally {
-      // Small delay so the indicator doesn't just flicker
-      setTimeout(() => setSaving(false), 500);
+      setSaveStatus('saved');
+      
+      // Reset to idle after a while
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error) {
+      console.error('Save failed:', error);
+      setSaveStatus('error');
     }
-  }, [frames, currentFrame, gridSize, darkMode, isAuthenticated, handleSaveProject]);
+  }, [animationState, getCompositedPixels, gridSize, darkMode, isAuthenticated, handleSaveProject]);
 
   // ── Auto-save logic ────────────────────────────────────────────────
   useEffect(() => {
-    // Don't auto-save if no changes have been made yet (e.g. empty new project)
-    const hasFrames = frames.some(f => Object.keys(f.pixels).length > 0);
-    if (!hasFrames && !projectName) return;
+    if (!isHydrated) return;
+    if (animationState.frames.length === 0) return;
 
     const timer = setTimeout(() => {
       performSave({ isDraft: true });
-    }, 2000); // 2 second debounce
+    }, 4000); // 4 second debounce
 
     return () => clearTimeout(timer);
-  }, [frames, projectName, gridSize, performSave]);
+  }, [isHydrated, animationState, performSave]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        performSave({ isDraft: true });
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      performSave({ isDraft: true });
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    const interval = setInterval(() => {
+      performSave({ isDraft: true });
+    }, 30000); // Every 30 seconds
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearInterval(interval);
+    };
+  }, [isHydrated, performSave]);
 
   // Handle Tailwind dark mode class
   useEffect(() => {
@@ -263,10 +412,8 @@ function EditorContent() {
   }, [darkMode]);
 
   const performClear = useCallback(() => {
-    const newFrames = [...frames];
-    newFrames[currentFrame] = { ...newFrames[currentFrame], pixels: {} };
-    setFrames(newFrames);
-  }, [frames, setFrames, currentFrame]);
+    clearCel(selectedFrameId, selectedLayerId);
+  }, [clearCel, selectedFrameId, selectedLayerId]);
 
   const handleAdjustBrush = useCallback((increment: boolean) => {
     setBrushSize(s => increment ? Math.min(16, s + 1) : Math.max(1, s - 1));
@@ -277,25 +424,107 @@ function EditorContent() {
     { id: 'fill', title: 'Fill Tool', category: 'Tools', action: () => setTool('fill'), shortcut: 'F' },
     { id: 'erase', title: 'Erase Tool', category: 'Tools', action: () => setTool('erase'), shortcut: 'E' },
     { id: 'picker', title: 'Color Picker', category: 'Tools', action: () => setTool('picker'), shortcut: 'I' },
-    { id: 'undo', title: 'Undo', category: 'History', action: undo, shortcut: 'Cmd+Z' },
-    { id: 'redo', title: 'Redo', category: 'History', action: redo, shortcut: 'Cmd+Shift+Z' },
+    { id: 'undo', title: 'Undo', category: 'History', action: undoLayered, shortcut: 'Cmd+Z' },
+    { id: 'redo', title: 'Redo', category: 'History', action: redoLayered, shortcut: 'Cmd+Shift+Z' },
     { id: 'clear', title: 'Clear Canvas', category: 'Canvas', action: performClear, shortcut: 'Cmd+X' },
     { id: 'save', title: 'Save Project', category: 'File', action: () => performSave({ isDraft: false }), shortcut: 'Cmd+S' },
     { id: 'toggle-dark', title: 'Toggle Dark Mode', category: 'Settings', action: () => setDarkMode(prev => !prev) },
-    { id: 'toggle-timeline', title: 'Toggle Timeline', category: 'View', action: () => setIsTimelineExpanded(prev => !prev) },
+    { id: 'toggle-timeline', title: 'Toggle Frames', category: 'View', action: () => setIsTimelineExpanded(prev => !prev) },
     { id: 'toggle-onion', title: 'Toggle Onion Skin', category: 'View', action: () => setOnionSkin(prev => !prev) },
-  ], [setTool, undo, redo, performClear, performSave, setDarkMode, setIsTimelineExpanded, setOnionSkin, setIsShortcutsOpen]);
+  ], [setTool, undoLayered, redoLayered, performClear, performSave, setDarkMode, setIsTimelineExpanded, setOnionSkin, setIsShortcutsOpen]);
+
+  const [clipboard, setClipboard] = useState<{ pixels: { [key: string]: string }; w: number; h: number } | null>(null);
+
+  const handleCopy = useCallback(() => {
+    const activeCel = findCel(animationState, selectedFrameId, selectedLayerId);
+    if (!activeCel || !activeCel.selection) return;
+    const selection = activeCel.selection;
+    const celData = animationState.celData[activeCel.dataId];
+    if (!celData) return;
+
+    const pixels: { [key: string]: string } = {};
+    for (let x = selection.x; x < selection.x + selection.w; x++) {
+      for (let y = selection.y; y < selection.y + selection.h; y++) {
+        const key = `${x},${y}`;
+        if (celData.pixels[key]) {
+          const relKey = `${x - selection.x},${y - selection.y}`;
+          pixels[relKey] = celData.pixels[key];
+        }
+      }
+    }
+    setClipboard({ pixels, w: selection.w, h: selection.h });
+  }, [animationState, selectedFrameId, selectedLayerId]);
+
+  const handleCut = useCallback(() => {
+    handleCopy();
+    const activeCel = findCel(animationState, selectedFrameId, selectedLayerId);
+    if (!activeCel || !activeCel.selection) return;
+    const selection = activeCel.selection;
+    
+    // Clear pixels in selection
+    const clearedPixels: { [key: string]: string } = {};
+    for (let x = selection.x; x < selection.x + selection.w; x++) {
+      for (let y = selection.y; y < selection.y + selection.h; y++) {
+        clearedPixels[`${x},${y}`] = ''; // Empty string for transparent
+      }
+    }
+    updateAnimationPixels(selectedFrameId, selectedLayerId, clearedPixels);
+  }, [handleCopy, selectedFrameId, selectedLayerId, updateAnimationPixels, animationState]);
+
+  const handlePaste = useCallback(() => {
+    if (!clipboard) return;
+    const activeCel = findCel(animationState, selectedFrameId, selectedLayerId);
+    if (!activeCel) return;
+    
+    const x = activeCel.selection?.x || 0;
+    const y = activeCel.selection?.y || 0;
+    
+    const pastedPixels: { [key: string]: string } = {};
+    Object.entries(clipboard.pixels).forEach(([key, color]) => {
+      const [px, py] = key.split(',').map(Number);
+      const newKey = `${px + x},${py + y}`;
+      pastedPixels[newKey] = color;
+    });
+    updateAnimationPixels(selectedFrameId, selectedLayerId, pastedPixels);
+  }, [clipboard, animationState, selectedFrameId, selectedLayerId, updateAnimationPixels]);
 
   useGlobalShortcuts({
-    onUndo: undo,
-    onRedo: redo,
+    onUndo: undoLayered,
+    onRedo: redoLayered,
     onSave: performSave,
     onClear: performClear,
     onSetTool: setTool,
     onAdjustBrush: handleAdjustBrush,
     onToggleCommandPalette: () => setIsCommandPaletteOpen(prev => !prev),
     onToggleShortcuts: () => setIsShortcutsOpen(prev => !prev),
+    onCopy: handleCopy,
+    onCut: handleCut,
+    onPaste: handlePaste,
+    onTogglePlay: () => setIsPlaying(prev => !prev),
+    onNextFrame: () => {
+      const currentIndex = animationState.frames.findIndex(f => f.id === selectedFrameId);
+      if (currentIndex < animationState.frames.length - 1) {
+        setSelectedFrameId(animationState.frames[currentIndex + 1].id);
+      }
+    },
+    onPrevFrame: () => {
+      const currentIndex = animationState.frames.findIndex(f => f.id === selectedFrameId);
+      if (currentIndex > 0) {
+        setSelectedFrameId(animationState.frames[currentIndex - 1].id);
+      }
+    },
   });
+
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background text-foreground">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <span className="text-sm text-muted">Loading Project...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground transition-colors duration-300" style={{ fontFamily: "'Geist Mono', monospace" }}>
@@ -333,7 +562,7 @@ function EditorContent() {
                   Continue Anyway
                 </button>
                 <button 
-                  onClick={() => router.push('/projects')}
+                  onClick={() => router.push('/dashboard')}
                   className="flex-1 btn-secondary py-2.5 text-xs font-bold uppercase tracking-widest rounded-lg"
                 >
                   Go to Dashboard
@@ -345,76 +574,49 @@ function EditorContent() {
       </AnimatePresence>
 
       <TopNavigation
-        onUndo={undo}
-        onRedo={redo}
+        onUndo={undoLayered}
+        onRedo={redoLayered}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
-        onBackToDashboard={() => router.push('/projects')}
+        onBackToDashboard={() => router.push('/dashboard')}
         projectName={projectName}
         setProjectName={setProjectName}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        saveStatus={saveStatus}
+        isOffline={isOffline}
       />
 
-      {/* Auto-save status indicator */}
-      <div className="absolute top-[18px] left-1/2 -translate-x-1/2 pointer-events-none z-[60]">
-        <div className={`px-4 py-1.5 border transition-all duration-500 flex items-center gap-2 bg-panel border-border ${saving ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
-          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">
-            Saving to {isAuthenticated ? 'Cloud' : 'Drafts'}
-          </span>
-        </div>
-      </div>
-
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Sidebar */}
-        <div className="shrink-0 h-full z-10">
-          <ToolsPanel
-            tool={tool}
-            setTool={setTool}
-            color={color}
-            setColor={setColor}
-            brushSize={brushSize}
-            setBrushSize={setBrushSize}
-            mirrorMode={mirrorMode}
-            setMirrorMode={setMirrorMode}
-            recentColors={recentColors}
-            addRecentColor={addRecentColor}
-            darkMode={darkMode}
-            onNewProject={handleNewProject}
+        <div className="shrink-0 h-full z-10 w-80 border-r border-border bg-background flex flex-col gap-4 p-4 overflow-y-auto">
+          <LayersPanel
+            state={animationState}
+            selectedFrame={selectedFrameId}
+            selectedLayer={selectedLayerId}
+            setSelectedLayer={setSelectedLayerId}
+            addLayer={addLayer}
+            unlinkCel={unlinkCel}
           />
         </div>
 
         {/* Center Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-background/50 relative overflow-hidden">
           <div className="flex-1 relative overflow-hidden min-h-0">
-            <CanvasArea
-              projectName={projectName}
-              setProjectName={setProjectName}
+            <CanvasLayered
+              state={animationState}
+              currentFrameId={selectedFrameId}
+              activeLayerId={selectedLayerId}
+              onUpdatePixels={updateAnimationPixels}
+              onUpdateTransform={updateTransform}
+              onUpdateSelection={updateSelection}
               gridSize={gridSize}
-              setGridSize={setGridSize}
-              toyMode={toyMode}
-              setToyMode={setToyMode}
-              tool={tool}
-              setTool={setTool}
+              darkMode={darkMode}
+              zoom={zoom}
+              pan={pan}
               color={color}
-              setColor={setColor}
-              brushSize={brushSize}
+              tool={tool}
               mirrorMode={mirrorMode}
               onionSkin={onionSkin}
-              previousFramePixels={currentFrame > 0 ? frames[currentFrame - 1].pixels : undefined}
-              pixels={frames[currentFrame]?.pixels || {}}
-              setPixels={(newPixels) => {
-                const newFrames = [...frames];
-                newFrames[currentFrame] = { ...newFrames[currentFrame], pixels: newPixels };
-                setFrames(newFrames);
-              }}
-              darkMode={darkMode}
-              onSave={() => performSave({ isDraft: false })}
-              saving={saving}
-              zoom={zoom}
-              setZoom={setZoom}
-              pan={pan}
-              setPan={setPan}
+              onZoom={setZoom}
             />
           </div>
 
@@ -425,13 +627,14 @@ function EditorContent() {
           >
             <div className={`absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${isDraggingTimeline ? 'opacity-100' : ''}`} />
             <button
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsTimelineExpanded(!isTimelineExpanded);
               }}
               className="absolute -top-[14px] bg-panel border border-border px-4 py-1 text-[9px] font-bold tracking-widest uppercase rounded-full shadow-lg hover:bg-accent hover:text-black transition-colors"
             >
-              {isTimelineExpanded ? '▼ Close Timeline' : '▲ Open Timeline'}
+              {isTimelineExpanded ? '▼ Close Frames' : '▲ Open Frames'}
             </button>
           </div>
 
@@ -443,54 +646,114 @@ function EditorContent() {
               transition: isDraggingTimeline ? 'none' : 'height 300ms ease-in-out'
             }}
           >
-            <AnimationTimeline
-              frames={frames}
-              setFrames={setFrames}
-              currentFrame={currentFrame}
-              setCurrentFrame={setCurrentFrame}
+            <FramesGrid
+              state={animationState}
+              selectedFrame={selectedFrameId}
+              setSelectedFrame={setSelectedFrameId}
+              selectedLayer={selectedLayerId}
+              setSelectedLayer={setSelectedLayerId}
+              addLayer={addLayer}
+              addFrame={handleAddFrameLayered}
+              deleteFrame={deleteFrame}
+              unlinkCel={unlinkCel}
               isPlaying={isPlaying}
               setIsPlaying={setIsPlaying}
-              fps={fps}
-              setFps={setFps}
-              onAddFrame={handleAddFrame}
-              onDuplicateFrame={handleDuplicateFrame}
-              onDeleteFrame={handleDeleteFrame}
+              updateThumbnail={updateThumbnail}
               gridSize={gridSize}
               darkMode={darkMode}
             />
+          </div>
+
+          {/* Quick Actions Bar */}
+          <div className="bg-background border-t border-border h-24 flex items-center justify-between px-4 shrink-0">
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted">Canvas Size</span>
+                <div className="flex items-center border border-border bg-panel">
+                  <button 
+                    onClick={() => setGridSize(Math.max(8, gridSize - 8))}
+                    className="w-8 h-8 flex items-center justify-center border-r border-border hover:bg-accent hover:text-black transition-colors"
+                  >
+                    &lt;
+                  </button>
+                  <div className="px-3 text-[10px] font-bold">{gridSize} X {gridSize}</div>
+                  <button 
+                    onClick={() => setGridSize(Math.min(64, gridSize + 8))}
+                    className="w-8 h-8 flex items-center justify-center border-l border-border hover:bg-accent hover:text-black transition-colors"
+                  >
+                    &gt;
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted">Toy Mode</span>
+                <button
+                  onClick={() => setToyMode(!toyMode)}
+                  className={`border border-border p-1 w-12 h-8 flex items-center transition-colors ${toyMode ? 'bg-accent/20 border-accent' : 'bg-panel'}`}
+                >
+                  <div className={`w-4 h-full bg-accent transition-transform ${toyMode ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={performClear}
+                className="px-4 py-2 border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-panel transition-colors"
+              >
+                Clear
+              </button>
+              <div className="relative group">
+                <button
+                  className="px-4 py-2 border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-panel transition-colors flex items-center gap-1"
+                >
+                  Export <span>▼</span>
+                </button>
+                <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block bg-panel border border-border shadow-lg z-30">
+                  <button onClick={handleExportPNG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-accent hover:text-black transition-colors">PNG</button>
+                  <button onClick={handleExportSVG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-accent hover:text-black transition-colors">SVG</button>
+                </div>
+              </div>
+              <button
+                onClick={() => performSave({ isDraft: false })}
+                className="px-4 py-2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest hover:bg-foreground/90 transition-colors flex items-center gap-1"
+              >
+                <span className="w-2 h-2 bg-background rounded-full inline-block" /> Save Project
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Right Sidebar */}
         <div className="shrink-0 h-full z-10">
-          <AnimationRightPanel
-            frames={frames}
+          <RightSidebar
+            state={animationState}
+            tool={tool}
+            setTool={setTool}
+            color={color}
+            setColor={setColor}
+            brushSize={brushSize}
+            setBrushSize={setBrushSize}
+            mirrorMode={mirrorMode}
+            setMirrorMode={setMirrorMode}
+            recentColors={recentColors}
+            addRecentColor={addRecentColor}
+            frames={computedFrames}
             gridSize={gridSize}
             setGridSize={setGridSize}
             currentFrame={currentFrame}
             onionSkin={onionSkin}
             setOnionSkin={setOnionSkin}
             darkMode={darkMode}
-            onExportPNG={async () => {
-              const dataUrl = await generatePNG(frames[currentFrame].pixels, gridSize, 600, darkMode ? '#000000' : '#ffffff');
-              const link = document.createElement('a');
-              link.download = `${projectName || 'pixel-art'}.png`;
-              link.href = dataUrl;
-              link.click();
-            }}
-            onExportSVG={() => {
-              const svgContent = generateSVG(frames[currentFrame].pixels, gridSize, 600);
-              const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.download = `${projectName || 'pixel-art'}.svg`;
-              link.href = url;
-              link.click();
-              URL.revokeObjectURL(url);
-            }}
+            onExportPNG={handleExportPNG}
+            onExportSVG={handleExportSVG}
             zoom={zoom}
+            setZoom={setZoom}
             pan={pan}
             setPan={setPan}
+            isPlaying={isPlaying}
+            fps={fps}
           />
         </div>
       </div>

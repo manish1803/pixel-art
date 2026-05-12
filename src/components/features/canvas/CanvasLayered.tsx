@@ -1,0 +1,458 @@
+'use client';
+import React, { useRef, useEffect, useState } from 'react';
+import { AnimationState, findCel } from '@/lib/models/animation';
+
+interface CanvasLayeredProps {
+  state: AnimationState;
+  currentFrameId: string;
+  activeLayerId: string;
+  onUpdatePixels: (frameId: string, layerId: string, pixels: { [key: string]: string }) => void;
+  onUpdateTransform: (frameId: string, layerId: string, transform: { x: number; y: number; rotation: number }) => void;
+  gridSize: number;
+  darkMode: boolean;
+  zoom: number;
+  pan: { x: number; y: number };
+  color: string;
+  tool: 'fill' | 'erase' | 'picker' | 'selection';
+  mirrorMode?: 'none' | 'vertical' | 'horizontal' | 'both';
+  onionSkin?: boolean;
+  onZoom?: (zoom: number | ((prev: number) => number)) => void;
+  onUpdateSelection?: (frameId: string, layerId: string, selection: { x: number; y: number; w: number; h: number } | null) => void;
+}
+
+export const CanvasLayered = React.memo(function CanvasLayered({
+  state,
+  currentFrameId,
+  activeLayerId,
+  onUpdatePixels,
+  onUpdateTransform,
+  onUpdateSelection,
+  gridSize,
+  darkMode,
+  zoom,
+  pan,
+  onZoom,
+  color,
+  tool,
+  mirrorMode = 'none',
+  onionSkin = false,
+}: CanvasLayeredProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  
+  const cel = findCel(state, currentFrameId, activeLayerId);
+  const selection = cel?.selection || null;
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectStart, setSelectStart] = useState<{ x: number; y: number } | null>(null);
+  const [isOverSelection, setIsOverSelection] = useState(false);
+  const [localSelection, setLocalSelection] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [dashOffset, setDashOffset] = useState(0);
+
+  useEffect(() => {
+    let id: number;
+    const loop = () => {
+      setDashOffset(prev => (prev + 0.5) % 8);
+      id = requestAnimationFrame(loop);
+    };
+    id = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const getLayerColor = (layerId: string) => {
+    const index = state.layers.findIndex(l => l.id === layerId);
+    const colors = ['#00ffff', '#ffaa00', '#00ff00', '#ff00aa', '#ffff00', '#ff00ff'];
+    return colors[index % colors.length];
+  };
+
+  const canvasSize = 600;
+  const cellSize = canvasSize / gridSize;
+  const canvasBg = darkMode ? '#000' : '#fff';
+
+  useEffect(() => {
+    drawCanvas();
+  }, [state, currentFrameId, gridSize, darkMode, selection, dashOffset, activeLayerId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
+      const step = e.shiftKey ? 5 : 1;
+      const cel = findCel(state, currentFrameId, activeLayerId);
+      const currentTransform = cel?.transform || { x: 0, y: 0, rotation: 0 };
+
+      let dx = 0;
+      let dy = 0;
+      let dr = 0;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selection) {
+          const clearedPixels: { [key: string]: string } = {};
+          for (let x = selection.x; x < selection.x + selection.w; x++) {
+            for (let y = selection.y; y < selection.y + selection.h; y++) {
+              clearedPixels[`${x},${y}`] = '';
+            }
+          }
+          onUpdatePixels(currentFrameId, activeLayerId, clearedPixels);
+          onUpdateSelection?.(currentFrameId, activeLayerId, null);
+          return;
+        }
+      }
+
+      switch (e.key) {
+        case 'ArrowUp':
+          dy = -step;
+          break;
+        case 'ArrowDown':
+          dy = step;
+          break;
+        case 'ArrowLeft':
+          dx = -step;
+          break;
+        case 'ArrowRight':
+          dx = step;
+          break;
+        case 'r':
+        case 'R':
+          dr = e.shiftKey ? -15 : 15;
+          break;
+        default:
+          return;
+      }
+
+      e.preventDefault();
+
+      if (dx !== 0 || dy !== 0) {
+        if (selection) {
+          const celData = cel ? state.celData[cel.dataId] : null;
+          if (!celData) return;
+
+          const newPixels = { ...celData.pixels };
+          const selectionPixels: { [key: string]: string } = {};
+
+          for (let x = selection.x; x < selection.x + selection.w; x++) {
+            for (let y = selection.y; y < selection.y + selection.h; y++) {
+              const key = `${x},${y}`;
+              if (newPixels[key]) {
+                selectionPixels[key] = newPixels[key];
+                delete newPixels[key];
+              }
+            }
+          }
+
+          Object.entries(selectionPixels).forEach(([key, color]) => {
+            const [x, y] = key.split(',').map(Number);
+            const newKey = `${x + dx},${y + dy}`;
+            newPixels[newKey] = color;
+          });
+
+          onUpdateSelection?.(currentFrameId, activeLayerId, {
+            ...selection,
+            x: selection.x + dx,
+            y: selection.y + dy
+          });
+
+          onUpdatePixels(currentFrameId, activeLayerId, newPixels);
+          return; // Skip transform!
+        }
+      }
+
+      onUpdateTransform(currentFrameId, activeLayerId, {
+        x: currentTransform.x + dx,
+        y: currentTransform.y + dy,
+        rotation: (currentTransform.rotation + dr) % 360,
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state, currentFrameId, activeLayerId, onUpdateTransform]);
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    ctx.fillStyle = canvasBg;
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+    const drawFrame = (frameId: string, alpha: number) => {
+      state.layers.forEach((layer) => {
+        if (!layer.isVisible) return;
+
+        const cel = findCel(state, frameId, layer.id);
+        if (!cel) return;
+
+        const celData = state.celData[cel.dataId];
+        if (!celData) return;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Apply transforms
+        if (cel.transform) {
+          ctx.translate(cel.transform.x * cellSize, cel.transform.y * cellSize);
+          if (cel.transform.rotation) {
+            // Rotate around the center of the canvas
+            const center = (gridSize / 2) * cellSize;
+            ctx.translate(center, center);
+            ctx.rotate((cel.transform.rotation * Math.PI) / 180);
+            ctx.translate(-center, -center);
+          }
+        }
+
+        Object.entries(celData.pixels || {}).forEach(([key, color]) => {
+          if (!color) return; // Skip transparent
+          const [x, y] = key.split(',').map(Number);
+          ctx.fillStyle = color;
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        });
+
+        ctx.restore();
+      });
+    };
+
+    if (onionSkin) {
+      const currentFrameIndex = state.frames.findIndex((f) => f.id === currentFrameId);
+      if (currentFrameIndex > 0) {
+        drawFrame(state.frames[currentFrameIndex - 1].id, 0.3);
+      }
+      if (currentFrameIndex < state.frames.length - 1) {
+        drawFrame(state.frames[currentFrameIndex + 1].id, 0.15);
+      }
+    }
+
+    // Draw active frame
+    drawFrame(currentFrameId, 1.0);
+
+    // Reset alpha
+    ctx.globalAlpha = 1.0;
+
+    // Draw grid
+    ctx.strokeStyle = darkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= gridSize; i++) {
+      const pos = Math.round(i * cellSize);
+      ctx.beginPath();
+      ctx.moveTo(pos, 0);
+      ctx.lineTo(pos, canvasSize);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, pos);
+      ctx.lineTo(canvasSize, pos);
+      ctx.stroke();
+    }
+
+    // Render Selection Bounds per layer
+    state.layers.forEach((layer) => {
+      const cel = findCel(state, currentFrameId, layer.id);
+      if (!cel || !cel.selection) return;
+
+      const isActive = layer.id === activeLayerId;
+      const color = getLayerColor(layer.id);
+
+      ctx.strokeStyle = color;
+      if (isActive) {
+        ctx.setLineDash([4, 4]);
+        ctx.lineDashOffset = dashOffset;
+        ctx.lineWidth = 2;
+      } else {
+        ctx.setLineDash([2, 2]); // Static or small dash
+        ctx.lineDashOffset = 0;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = color + '80'; // Add transparency
+      }
+
+      ctx.strokeRect(
+        cel.selection.x * cellSize,
+        cel.selection.y * cellSize,
+        cel.selection.w * cellSize,
+        cel.selection.h * cellSize
+      );
+    });
+
+    if (localSelection) {
+      ctx.strokeStyle = '#00F0FF';
+      ctx.setLineDash([4, 4]);
+      ctx.lineDashOffset = dashOffset;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        localSelection.x * cellSize,
+        localSelection.y * cellSize,
+        localSelection.w * cellSize,
+        localSelection.h * cellSize
+      );
+    }
+
+    ctx.setLineDash([]); // Reset line dash
+    ctx.lineDashOffset = 0;
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
+    const y = Math.floor((e.clientY - rect.top) / (rect.height / gridSize));
+
+    if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+      const colorToUse = tool === 'erase' ? '' : color;
+      const pixelsToUpdate: { [key: string]: string } = { [`${x},${y}`]: colorToUse };
+      
+      if (mirrorMode === 'horizontal' || mirrorMode === 'both') {
+        const mx = gridSize - 1 - x;
+        pixelsToUpdate[`${mx},${y}`] = colorToUse;
+      }
+      if (mirrorMode === 'vertical' || mirrorMode === 'both') {
+        const my = gridSize - 1 - y;
+        pixelsToUpdate[`${x},${my}`] = colorToUse;
+      }
+      if (mirrorMode === 'both') {
+        const mx = gridSize - 1 - x;
+        const my = gridSize - 1 - y;
+        pixelsToUpdate[`${mx},${my}`] = colorToUse;
+      }
+      
+      onUpdatePixels(currentFrameId, activeLayerId, pixelsToUpdate);
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
+    const y = Math.floor((e.clientY - rect.top) / (rect.height / gridSize));
+
+    if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+      if (tool === 'selection') {
+        setIsSelecting(true);
+        setSelectStart({ x, y });
+        onUpdateSelection?.(currentFrameId, activeLayerId, { x, y, w: 1, h: 1 });
+      } else {
+        setIsDrawing(true);
+        handleCanvasClick(e);
+      }
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
+    const y = Math.floor((e.clientY - rect.top) / (rect.height / gridSize));
+
+    if (selection) {
+      if (x >= selection.x && x < selection.x + selection.w &&
+          y >= selection.y && y < selection.y + selection.h) {
+        setIsOverSelection(true);
+      } else {
+        setIsOverSelection(false);
+      }
+    } else {
+      setIsOverSelection(false);
+    }
+
+    if (isSelecting && selectStart) {
+      const x1 = Math.min(selectStart.x, x);
+      const y1 = Math.min(selectStart.y, y);
+      const x2 = Math.max(selectStart.x, x);
+      const y2 = Math.max(selectStart.y, y);
+      
+      setLocalSelection({
+        x: x1,
+        y: y1,
+        w: x2 - x1 + 1,
+        h: y2 - y1 + 1
+      });
+    } else if (isDrawing) {
+      handleCanvasClick(e);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsSelecting(false);
+    setIsDrawing(false);
+    if (localSelection) {
+      onUpdateSelection?.(currentFrameId, activeLayerId, localSelection);
+      setLocalSelection(null);
+    }
+  };
+
+  // Handle wheel zoom
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !onZoom) return;
+    
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY;
+      const zoomFactor = delta < 0 ? 1.1 : 0.9;
+      onZoom((prev: number) => Math.max(0.1, Math.min(10, prev * zoomFactor)));
+    };
+    
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
+  }, [onZoom]);
+
+  return (
+    <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden relative bg-zinc-950">
+      <canvas
+        ref={canvasRef}
+        width={canvasSize}
+        height={canvasSize}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        className="border border-border shadow-2xl max-w-full max-h-full object-contain [image-rendering:pixelated]"
+        style={{ 
+          cursor: tool === 'selection' ? (isOverSelection ? 'move' : 'crosshair') :
+                  'crosshair',
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: 'center',
+        }}
+      />
+      
+      {/* Transform Toolbar */}
+      {cel && (
+        <div className="absolute top-4 right-4 bg-panel/80 backdrop-blur-sm border border-border px-3 py-2 rounded shadow-lg flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted">X</span>
+            <span className="text-xs font-mono font-bold">{cel.transform?.x || 0}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Y</span>
+            <span className="text-xs font-mono font-bold">{cel.transform?.y || 0}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Rot</span>
+            <input
+              type="number"
+              value={cel.transform?.rotation || 0}
+              onChange={(e) => {
+                const rotation = parseInt(e.target.value) || 0;
+                onUpdateTransform(currentFrameId, activeLayerId, {
+                  x: cel.transform?.x || 0,
+                  y: cel.transform?.y || 0,
+                  rotation: rotation,
+                });
+              }}
+              className="w-12 bg-transparent text-xs font-mono font-bold focus:outline-none focus:text-accent border-b border-dashed border-muted-foreground/50 hover:border-accent transition-colors"
+            />
+            <span className="text-xs font-mono font-bold">°</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Zoom Indicator */}
+      <div className="absolute bottom-4 right-4 bg-panel/80 backdrop-blur-sm border border-border px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-foreground shadow-lg pointer-events-none">
+        {Math.round(zoom * 100)}%
+      </div>
+    </div>
+  );
+});

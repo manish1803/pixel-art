@@ -15,6 +15,7 @@ export const CreateProjectSchema = z.object({
   pixels: z.record(z.string(), z.string()).default({}),
   gridSize: z.number().int().min(8).max(128).default(32),
   frames: z.array(FrameSchema).default([]),
+  animationState: z.any().optional(),
   isFavourite: z.boolean().default(false),
   isDraft: z.boolean().default(false),
 });

@@ -90,7 +90,7 @@ export function Navbar() {
                 </>
               ) : (
                 <>
-                  <Link href="/projects" className="text-xs font-bold text-text-muted hover:text-foreground transition-colors">
+                  <Link href="/dashboard" className="text-xs font-bold text-text-muted hover:text-foreground transition-colors">
                     Dashboard
                   </Link>
                   <UserMenu 

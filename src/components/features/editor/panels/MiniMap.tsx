@@ -2,7 +2,7 @@
 import { useRef, useEffect } from 'react';
 
 interface Frame {
-  id: number;
+  id: string | number;
   pixels: { [key: string]: string };
 }
 

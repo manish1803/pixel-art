@@ -24,6 +24,7 @@ export interface IProject extends Document {
   pixels: Map<string, string>;
   gridSize: number;
   frames: IFrame[];
+  animationState?: any;
   isFavourite: boolean;
   isDraft: boolean;
   createdAt: Date;
@@ -40,6 +41,7 @@ const ProjectSchema = new Schema<IProject>(
     pixels:      { type: Map, of: String, default: {} },
     gridSize:    { type: Number, default: 32 },
     frames:      { type: [FrameSchema], default: [] },
+    animationState: { type: Schema.Types.Mixed, default: null },
     isFavourite: { type: Boolean, default: false },
     isDraft:     { type: Boolean, default: false },
   },

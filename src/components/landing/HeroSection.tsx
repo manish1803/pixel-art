@@ -107,13 +107,13 @@ export function HeroSection() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24"
             >
                 <Link 
-                  href={session ? "/projects" : "/editor"} 
+                  href={session ? "/dashboard" : "/editor"} 
                   className="btn-primary py-4 px-8 rounded-lg text-base w-full sm:w-auto shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-transform hover:scale-105 active:scale-95"
                 >
                     {session ? "Continue to Dashboard" : "Launch Editor"}
                 </Link>
                 {!session && (
-                  <Link href="/projects" className="btn-secondary py-4 px-8 rounded-lg text-base w-full sm:w-auto transition-transform hover:scale-105 active:scale-95">
+                  <Link href="/dashboard" className="btn-secondary py-4 px-8 rounded-lg text-base w-full sm:w-auto transition-transform hover:scale-105 active:scale-95">
                       Go to Dashboard
                   </Link>
                 )}

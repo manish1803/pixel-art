@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ProjectCard } from './ProjectCard';
 import { FolderCard } from './FolderCard';
+import { Sidebar } from './Sidebar';
 import { UserMenu } from '@/components/shared/layout/UserMenu';
 import { CreateFolderModal } from '@/components/ui/CreateFolderModal';
 import { Logo } from '@/components/shared/Logo';
 
-interface Project {
+export interface Project {
   id: string;
   name: string;
   date: string;
@@ -113,7 +114,7 @@ function Section({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {projects.length === 0 && folders.length === 0 ? (
           <SectionEmptyState label={emptyLabel} darkMode={darkMode} />
         ) : (
@@ -178,7 +179,13 @@ export function Dashboard({
   const currentFolderName = folders.find(f => f.id === currentFolderId)?.name;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background text-foreground transition-colors duration-300">
+    <div className="h-screen flex overflow-hidden bg-background text-foreground transition-colors duration-300">
+      <Sidebar 
+        favourites={favourites} 
+        onOpenProject={onOpenProject} 
+        onNewProject={onNewProject} 
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top Nav */}
       <nav className="h-16 border-b border-border flex items-center justify-between px-8 shrink-0">
         <Logo />
@@ -208,7 +215,7 @@ export function Dashboard({
           </button>
 
           <UserMenu
-            onSignIn={() => router.push('/auth/signin?callbackUrl=/projects')}
+            onSignIn={() => router.push('/auth/signin?callbackUrl=/dashboard')}
           />
         </div>
       </nav>
@@ -220,7 +227,7 @@ export function Dashboard({
             ☁ Sign in to sync your projects across devices
           </span>
           <button
-            onClick={() => router.push('/auth/signin?callbackUrl=/projects')}
+            onClick={() => router.push('/auth/signin?callbackUrl=/dashboard')}
             className="text-[9px] font-bold uppercase tracking-widest underline opacity-40 hover:opacity-100 transition-opacity text-foreground"
           >
             Sign In
@@ -237,6 +244,25 @@ export function Dashboard({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-10">
+          {/* Launchpad / Hero */}
+          <div className="bg-panel/30 border border-border rounded-xl p-6 relative overflow-hidden">
+            <div className="max-w-2xl">
+              <h1 className="text-xl font-bold text-foreground mb-1">Welcome back, {session?.user?.name || 'Creator'}</h1>
+              <p className="text-xs text-muted mb-4">Pick up where you left off or start a new creation.</p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  onClick={onNewProject}
+                  className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group"
+                >
+                  <Plus className="w-5 h-5 text-muted group-hover:text-accent mb-2 transition-colors" />
+                  <h3 className="text-xs font-bold text-foreground mb-0.5">Blank Canvas</h3>
+                  <p className="text-[10px] text-muted">Create a new pixel art file.</p>
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Favourites */}
           <Section
             title="Favourites"
@@ -295,6 +321,7 @@ export function Dashboard({
           />
         </div>
       )}
+      </div>
     </div>
   );
 }
