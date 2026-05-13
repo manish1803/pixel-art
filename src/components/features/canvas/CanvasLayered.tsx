@@ -580,7 +580,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   }, [onZoom]);
 
   return (
-    <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden relative bg-zinc-950">
+    <div className={`flex-1 min-h-0 flex items-center justify-center overflow-hidden relative ${darkMode ? 'bg-zinc-950' : 'bg-zinc-100'}`}>
       <canvas
         ref={canvasRef}
         width={canvasSize}
@@ -595,7 +595,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
             hoveredHandle === 'nw' || hoveredHandle === 'se' ? 'nwse-resize' :
             hoveredHandle === 'ne' || hoveredHandle === 'sw' ? 'nesw-resize' :
             isOverSelection ? 'move' : 'crosshair'
-          ) : 'crosshair',
+          ) : `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="3" fill="white" stroke="black" stroke-width="1"/></svg>') 8 8, auto`,
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: 'center',
         }}

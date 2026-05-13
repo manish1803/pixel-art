@@ -197,10 +197,19 @@ function EditorContent() {
     try {
       const project = JSON.parse(stored);
       if (project.id === projectId) {
-        setCurrentProjectId(project.id);
+        if (project.id.startsWith('import_')) {
+          setCurrentProjectId(null);
+        } else {
+          setCurrentProjectId(project.id);
+        }
         setProjectName(project.name);
         setGridSize(project.gridSize || 32);
-        if (project.frames?.length) {
+        if (project.palette) {
+          setRecentColors(project.palette);
+        }
+        if (project.animationState) {
+          resetState(project.animationState);
+        } else if (project.frames?.length) {
           setFramesWithoutHistory(project.frames);
         } else if (project.pixels) {
           setFramesWithoutHistory([{ id: 1, pixels: project.pixels }]);
@@ -214,7 +223,7 @@ function EditorContent() {
 
   // Fetch project from API if missing from sessionStorage (e.g. on refresh)
   useEffect(() => {
-    if (!projectId || !isAuthenticated) {
+    if (!projectId || !isAuthenticated || projectId.startsWith('import_')) {
       setIsHydrated(true);
       return;
     }

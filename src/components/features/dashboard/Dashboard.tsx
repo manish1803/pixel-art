@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { ProjectCard } from './ProjectCard';
 import { FolderCard } from './FolderCard';
 import { Sidebar } from './Sidebar';
+import { ImportImageModal } from './ImportImageModal';
 import { UserMenu } from '@/components/shared/layout/UserMenu';
 import { CreateFolderModal } from '@/components/ui/CreateFolderModal';
 import { Logo } from '@/components/shared/Logo';
@@ -189,6 +190,7 @@ export function Dashboard({
 }: DashboardProps) {
   const [currentFolderId, setCurrentFolderId] = React.useState<string | null>(null);
   const [isFolderModalOpen, setIsFolderModalOpen] = React.useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -323,6 +325,7 @@ export function Dashboard({
                   </button>
                   
                   <button
+                    onClick={() => setIsImportModalOpen(true)}
                     className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group flex items-center gap-3"
                   >
                     <div className="w-8 h-8 bg-panel border border-border rounded flex items-center justify-center group-hover:border-accent/50 transition-colors">
@@ -408,6 +411,37 @@ export function Dashboard({
             onClose={() => setIsFolderModalOpen(false)}
             onConfirm={onCreateFolder}
             darkMode={darkMode}
+          />
+
+          <ImportImageModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            onImport={(layers, size, palette) => {
+              const mockId = `import_${Date.now()}`;
+              const mockProject = {
+                id: mockId,
+                name: 'Imported Project',
+                date: new Date().toLocaleDateString(),
+                preview: '',
+                pixels: layers[0] || {},
+                gridSize: size,
+                palette,
+                frames: [{ id: 1, pixels: layers[0] || {} }],
+                animationState: {
+                  layers: layers.map((_, index) => ({ id: `layer-${index+1}`, name: `Layer ${index+1}`, isVisible: true, isLocked: false, opacity: 100, blendMode: 'source-over' })),
+                  frames: [{ id: 'frame-1' }],
+                  cels: layers.map((_, index) => ({ layerId: `layer-${index+1}`, frameId: 'frame-1', dataId: `data-${index+1}` })),
+                  celData: layers.reduce((acc, layerPixels, index) => {
+                    acc[`data-${index+1}`] = { id: `data-${index+1}`, pixels: layerPixels };
+                    return acc;
+                  }, {} as any)
+                },
+                isFavourite: false,
+                isDraft: true
+              };
+              sessionStorage.setItem('open-project', JSON.stringify(mockProject));
+              router.push(`/editor?id=${mockId}`);
+            }}
           />
         </div>
       )}
