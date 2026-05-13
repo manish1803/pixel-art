@@ -411,7 +411,7 @@ export const CanvasArea = React.memo(function CanvasArea({
 
           <button
             onClick={handleClear}
-            className="border border-border px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-accent hover:text-black text-foreground bg-transparent"
+            className="border border-border px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider hover-accent text-foreground bg-transparent"
           >
             Clear
           </button>
@@ -421,7 +421,7 @@ export const CanvasArea = React.memo(function CanvasArea({
           <div className="relative">
             <button
               onClick={() => setExportOpen(!exportOpen)}
-              className={`border border-border px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-accent hover:text-black flex items-center gap-2 text-foreground ${
+              className={`border border-border px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider hover-accent flex items-center gap-2 text-foreground ${
                 exportOpen ? 'bg-panel' : 'bg-transparent'
               }`}
             >
@@ -432,10 +432,10 @@ export const CanvasArea = React.memo(function CanvasArea({
             
             {exportOpen && (
               <div className="absolute bottom-full mb-2 right-0 border border-border bg-panel flex flex-col min-w-[120px] shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-1 duration-150">
-                <button onClick={handleExportPNG} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider hover:bg-accent hover:text-black transition-colors border-b border-border text-foreground">
+                <button onClick={handleExportPNG} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider hover-accent border-b border-border text-foreground">
                   Export PNG
                 </button>
-                <button onClick={handleExportSVG} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider hover:bg-accent hover:text-black transition-colors text-foreground">
+                <button onClick={handleExportSVG} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider hover-accent text-foreground">
                   Export SVG
                 </button>
               </div>
@@ -445,7 +445,7 @@ export const CanvasArea = React.memo(function CanvasArea({
           <button
             onClick={onSave}
             disabled={saving}
-            className="border border-border px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-accent hover:text-black text-foreground bg-panel/30 flex items-center gap-2 group disabled:opacity-50"
+            className="border border-border px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider hover-accent text-foreground bg-panel/30 flex items-center gap-2 group disabled:opacity-50"
           >
             <div className={`w-1.5 h-1.5 rounded-full ${saving ? 'bg-accent animate-pulse' : 'bg-foreground group-hover:bg-accent'}`} />
             <span>{saving ? 'Saving...' : 'Save Project'}</span>

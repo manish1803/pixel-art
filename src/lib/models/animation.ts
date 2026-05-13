@@ -3,6 +3,8 @@ export interface Layer {
   name: string;
   isVisible: boolean;
   isLocked: boolean;
+  opacity?: number; // 0-100
+  blendMode?: GlobalCompositeOperation; // Canvas blend mode
 }
 
 export interface Frame {
@@ -36,7 +38,7 @@ export interface AnimationState {
 
 // Helper to create a new state
 export function createInitialState(): AnimationState {
-  const defaultLayer: Layer = { id: 'layer-1', name: 'Layer 1', isVisible: true, isLocked: false };
+  const defaultLayer: Layer = { id: 'layer-1', name: 'Layer 1', isVisible: true, isLocked: false, opacity: 100, blendMode: 'source-over' };
   const defaultFrame: Frame = { id: 'frame-1' };
   const defaultCelData: CelData = { id: 'data-1', pixels: {} };
   const defaultCel: Cel = { layerId: 'layer-1', frameId: 'frame-1', dataId: 'data-1' };

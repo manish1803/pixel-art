@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Unlock, Plus, Play, Pause, SkipForward, SkipBack, Unlink, Link, Copy, Trash2, Image } from 'lucide-react';
 import { AnimationState, findCel } from '@/lib/models/animation';
+import { DeleteFrameModal } from '@/components/ui/DeleteFrameModal';
 
 interface FramesGridProps {
   state: AnimationState;
@@ -11,7 +12,7 @@ interface FramesGridProps {
   setSelectedLayer: (id: string) => void;
   addLayer: (id: string, name: string) => void;
   addFrame: (id: string, copyFromId?: string) => void;
-  deleteFrame: (id: string) => void;
+  onDeleteFrame: (id: string) => void;
   unlinkCel: (frameId: string, layerId: string) => void;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
@@ -75,7 +76,7 @@ export function FramesGrid({
   setSelectedLayer,
   addLayer,
   addFrame,
-  deleteFrame,
+  onDeleteFrame,
   unlinkCel,
   isPlaying,
   setIsPlaying,
@@ -83,6 +84,8 @@ export function FramesGrid({
   gridSize,
   darkMode,
 }: FramesGridProps) {
+
+
   return (
     <div className="bg-background border-t border-border flex flex-col h-52 overflow-hidden">
       {/* Toolbar */}
@@ -150,7 +153,7 @@ export function FramesGrid({
                       e.stopPropagation();
                       updateThumbnail?.(frame.id);
                     }}
-                    className={`p-1 bg-panel border border-border rounded hover:bg-accent hover:text-black transition-colors ${
+                    className={`p-1 bg-panel border border-border rounded hover-accent ${
                       isThumbnail ? 'text-accent border-accent' : ''
                     }`}
                     title="Set as Thumbnail"
@@ -162,7 +165,7 @@ export function FramesGrid({
                     e.stopPropagation();
                     addFrame(`frame-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, frame.id); // Duplicate
                   }}
-                  className="p-1 bg-panel border border-border rounded hover:bg-accent hover:text-black transition-colors"
+                  className="p-1 bg-panel border border-border rounded hover-accent"
                   title="Duplicate"
                 >
                   <Copy className="w-3 h-3" />
@@ -170,9 +173,9 @@ export function FramesGrid({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    deleteFrame(frame.id);
+                    onDeleteFrame(frame.id);
                   }}
-                  className="p-1 bg-panel border border-border rounded hover:bg-destructive hover:text-white transition-colors"
+                  className="p-1 bg-panel border border-border rounded hover:bg-red-600 hover:text-white transition-colors text-red-500"
                   title="Delete"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -206,6 +209,7 @@ export function FramesGrid({
         </div>
         <div className="flex-1" />
       </div>
+
     </div>
   );
 }

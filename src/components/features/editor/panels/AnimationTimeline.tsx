@@ -118,7 +118,7 @@ export function AnimationTimeline({
               <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <button 
                   onClick={(e) => { e.stopPropagation(); onDuplicateFrame(index); }}
-                  className="p-1.5 bg-panel border border-border rounded shadow-lg hover:bg-accent hover:text-black transition-colors"
+                  className="p-1.5 bg-panel border border-border rounded shadow-lg hover-accent"
                   title="Duplicate Frame"
                 >
                   <Copy className="w-3.5 h-3.5" />
@@ -138,7 +138,7 @@ export function AnimationTimeline({
 
           <button
             onClick={onAddFrame}
-            className="flex-shrink-0 w-24 h-28 border border-dashed border-border flex items-center justify-center transition-colors hover:bg-accent hover:text-black text-muted"
+            className="flex-shrink-0 w-24 h-28 border border-dashed border-border flex items-center justify-center hover-accent text-muted"
           >
             <span className="text-2xl font-light">+</span>
           </button>
@@ -149,21 +149,21 @@ export function AnimationTimeline({
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setCurrentFrame((currentFrame - 1 + frames.length) % frames.length)}
-            className="w-8 h-8 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted shadow-sm bg-panel"
+            className="w-8 h-8 flex items-center justify-center border border-border hover-accent text-muted shadow-sm bg-panel"
             title="Previous Frame"
           >
             <SkipBack className="w-3.5 h-3.5" />
           </button>
           <button 
             onClick={() => setIsPlaying(!isPlaying)} 
-            className="w-8 h-8 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-foreground shadow-sm bg-panel"
+            className="w-8 h-8 flex items-center justify-center border border-border hover-accent text-foreground shadow-sm bg-panel"
             title={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
           </button>
           <button 
             onClick={() => setCurrentFrame((currentFrame + 1) % frames.length)}
-            className="w-8 h-8 flex items-center justify-center border border-border transition-colors hover:bg-accent hover:text-black text-muted shadow-sm bg-panel"
+            className="w-8 h-8 flex items-center justify-center border border-border hover-accent text-muted shadow-sm bg-panel"
             title="Next Frame"
           >
             <SkipForward className="w-3.5 h-3.5" />

@@ -42,7 +42,7 @@ export function FolderCard({ folder, darkMode, onClick, onRename, onDelete }: Fo
                   const newName = prompt('Enter new folder name:', folder.name);
                   if (newName && newName !== folder.name) onRename(folder.id, newName);
                 }}
-                className="w-7 h-7 flex items-center justify-center border border-border hover:bg-accent hover:text-black transition-colors text-foreground"
+                className="w-7 h-7 flex items-center justify-center border border-border hover-accent text-foreground"
              >
                 <Edit2 className="w-3 h-3" />
              </button>

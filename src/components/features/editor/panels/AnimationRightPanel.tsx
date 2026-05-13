@@ -127,7 +127,7 @@ export function AnimationRightPanel({
       {/* Export Section */}
       <PanelSection title="Export Assets">
         <div className="relative">
-          <button onClick={() => setExportOpen(!exportOpen)} className={`w-full px-4 py-3 border border-border text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-accent hover:text-black flex items-center justify-center gap-2 text-foreground ${
+          <button onClick={() => setExportOpen(!exportOpen)} className={`w-full px-4 py-3 border border-border text-[10px] font-bold uppercase tracking-widest hover-accent flex items-center justify-center gap-2 text-foreground ${
             exportOpen ? 'bg-panel' : 'bg-transparent'
           }`}>
             <span>EXPORT FRAME</span>
@@ -138,13 +138,13 @@ export function AnimationRightPanel({
             <div className="absolute bottom-full mb-2 right-0 border border-border bg-panel flex flex-col w-full shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-1 duration-150">
               <button 
                 onClick={() => { onExportPNG(); setExportOpen(false); }} 
-                className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider hover:bg-accent hover:text-black transition-colors border-b border-border text-foreground" 
+                className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider hover-accent border-b border-border text-foreground" 
               >
                 PNG
               </button>
               <button 
                 onClick={() => { onExportSVG(); setExportOpen(false); }} 
-                className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider hover:bg-accent hover:text-black transition-colors text-foreground" 
+                className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider hover-accent text-foreground" 
               >
                 SVG
               </button>

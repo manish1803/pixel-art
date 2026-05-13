@@ -18,6 +18,8 @@ import { useAnimationStore } from '@/hooks/useAnimationStore';
 import { CanvasLayered } from '@/components/features/canvas/CanvasLayered';
 import { FramesGrid } from '@/components/features/editor/panels/TimelineGrid';
 import { LayersPanel } from '@/components/features/editor/panels/LayersPanel';
+import { DeleteFrameModal } from '@/components/ui/DeleteFrameModal';
+import { loadProject } from '@/lib/project-loader';
 import { findCel } from '@/lib/models/animation';
 
 function EditorContent() {
@@ -27,9 +29,10 @@ function EditorContent() {
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user?.id;
 
-  const { state: animationState, updatePixels: updateAnimationPixels, addLayer, addFrame, deleteFrame, updateTransform, unlinkCel, clearCel, undo: undoLayered, redo: redoLayered, updateSelection, resetState, updateThumbnail } = useAnimationStore();
+  const { state: animationState, updatePixels: updateAnimationPixels, addLayer, addFrame, deleteFrame, updateTransform, unlinkCel, clearCel, undo: undoLayered, redo: redoLayered, updateSelection, resetState, updateThumbnail, toggleLayerVisibility, toggleLayerLock, renameLayer, deleteLayer, duplicateLayer, reorderLayers, updateLayerOpacity, updateLayerBlendMode, mergeLayerDown } = useAnimationStore();
   const [selectedFrameId, setSelectedFrameId] = useState('frame-1');
   const [selectedLayerId, setSelectedLayerId] = useState('layer-1');
+  const [frameToDelete, setFrameToDelete] = useState<{ id: string, index: number } | null>(null);
 
   const getCompositedPixels = useCallback((frameId: string) => {
     const pixels: { [key: string]: string } = {};
@@ -47,6 +50,43 @@ function EditorContent() {
     });
     return pixels;
   }, [animationState]);
+
+  const isFrameEmpty = useCallback((frameId: string) => {
+    const frameCels = animationState.cels.filter(c => c.frameId === frameId);
+    return frameCels.every(cel => {
+      const data = animationState.celData[cel.dataId];
+      return !data || Object.keys(data.pixels).length === 0;
+    });
+  }, [animationState]);
+
+  const performDeleteFrame = useCallback((frameId: string) => {
+    if (frameId === selectedFrameId) {
+      const currentIndex = animationState.frames.findIndex(f => f.id === frameId);
+      let nextSelectedId = '';
+      
+      if (currentIndex > 0) {
+        nextSelectedId = animationState.frames[currentIndex - 1].id;
+      } else if (animationState.frames.length > 1) {
+        nextSelectedId = animationState.frames[currentIndex + 1].id;
+      }
+      
+      if (nextSelectedId) {
+        setSelectedFrameId(nextSelectedId);
+      }
+    }
+    deleteFrame(frameId);
+  }, [animationState, selectedFrameId, deleteFrame]);
+
+  const handleDeleteFrameRequest = useCallback((frameId: string) => {
+    if (animationState.frames.length <= 1) return;
+    
+    if (!isFrameEmpty(frameId)) {
+      const index = animationState.frames.findIndex(f => f.id === frameId);
+      setFrameToDelete({ id: frameId, index: index + 1 });
+    } else {
+      performDeleteFrame(frameId);
+    }
+  }, [animationState, isFrameEmpty, performDeleteFrame]);
 
   const computedFrames = useMemo(() => {
     return animationState.frames.map(frame => ({
@@ -189,10 +229,15 @@ function EditorContent() {
         const res = await fetch(`/api/projects/${projectId}`);
         const data = await res.json();
         if (data.success && data.data) {
-          const project = data.data;
+          const rawProject = data.data;
+          
+          // Use projectLoader to validate and migrate!
+          const project = await loadProject(rawProject);
+          
           setCurrentProjectId(project.id);
           setProjectName(project.name);
           setGridSize(project.gridSize || 32);
+          
           if (project.animationState) {
             resetState(project.animationState);
             if (project.animationState.frames?.length > 0) {
@@ -201,30 +246,6 @@ function EditorContent() {
             if (project.animationState.layers?.length > 0) {
               setSelectedLayerId(project.animationState.layers[0].id);
             }
-          } else if (project.frames?.length) {
-            setFramesWithoutHistory(project.frames);
-            
-            // Convert to new state
-            const layers = [{ id: 'layer-1', name: 'Layer 1', isVisible: true, isLocked: false }];
-            const frames: any[] = [];
-            const cels: any[] = [];
-            const celData: any = {};
-
-            project.frames.forEach((f: any, index: number) => {
-              const frameId = `frame-${index + 1}`;
-              frames.push({ id: frameId });
-              const dataId = `data-${index + 1}`;
-              celData[dataId] = { id: dataId, pixels: f.pixels || {} };
-              cels.push({ layerId: 'layer-1', frameId, dataId });
-            });
-
-            resetState({ layers, frames, cels, celData });
-            if (frames.length > 0) {
-              setSelectedFrameId(frames[0].id);
-            }
-            setSelectedLayerId('layer-1');
-          } else if (project.pixels) {
-            setFramesWithoutHistory([{ id: 1, pixels: project.pixels }]);
           }
         }
       } catch (e) {
@@ -513,6 +534,58 @@ function EditorContent() {
         setSelectedFrameId(animationState.frames[currentIndex - 1].id);
       }
     },
+    onDeleteFrame: () => handleDeleteFrameRequest(selectedFrameId),
+    onNewLayer: () => {
+      const id = `layer_${Date.now()}`;
+      addLayer(id, `Layer ${animationState.layers.length + 1}`);
+      setSelectedLayerId(id);
+    },
+    onDuplicateLayer: () => {
+      const layer = animationState.layers.find(l => l.id === selectedLayerId);
+      if (!layer) return;
+      const id = `layer_${Date.now()}`;
+      duplicateLayer(selectedLayerId, id);
+      setSelectedLayerId(id);
+    },
+    onDeleteLayer: () => {
+      if (animationState.layers.length <= 1) return;
+      const currentIndex = animationState.layers.findIndex(l => l.id === selectedLayerId);
+      deleteLayer(selectedLayerId);
+      const nextIndex = currentIndex > 0 ? currentIndex - 1 : 0;
+      setSelectedLayerId(animationState.layers[nextIndex].id);
+    },
+    onMoveLayerUp: () => {
+      const currentIndex = animationState.layers.findIndex(l => l.id === selectedLayerId);
+      if (currentIndex > 0) {
+        const newLayers = [...animationState.layers];
+        const temp = newLayers[currentIndex];
+        newLayers[currentIndex] = newLayers[currentIndex - 1];
+        newLayers[currentIndex - 1] = temp;
+        reorderLayers(newLayers);
+      }
+    },
+    onMoveLayerDown: () => {
+      const currentIndex = animationState.layers.findIndex(l => l.id === selectedLayerId);
+      if (currentIndex < animationState.layers.length - 1) {
+        const newLayers = [...animationState.layers];
+        const temp = newLayers[currentIndex];
+        newLayers[currentIndex] = newLayers[currentIndex + 1];
+        newLayers[currentIndex + 1] = temp;
+        reorderLayers(newLayers);
+      }
+    },
+    onSelectLayerAbove: () => {
+      const currentIndex = animationState.layers.findIndex(l => l.id === selectedLayerId);
+      if (currentIndex > 0) {
+        setSelectedLayerId(animationState.layers[currentIndex - 1].id);
+      }
+    },
+    onSelectLayerBelow: () => {
+      const currentIndex = animationState.layers.findIndex(l => l.id === selectedLayerId);
+      if (currentIndex < animationState.layers.length - 1) {
+        setSelectedLayerId(animationState.layers[currentIndex + 1].id);
+      }
+    },
   });
 
   if (!isHydrated) {
@@ -595,6 +668,17 @@ function EditorContent() {
             setSelectedLayer={setSelectedLayerId}
             addLayer={addLayer}
             unlinkCel={unlinkCel}
+            toggleLayerVisibility={toggleLayerVisibility}
+            toggleLayerLock={toggleLayerLock}
+            renameLayer={renameLayer}
+            deleteLayer={deleteLayer}
+            duplicateLayer={duplicateLayer}
+            clearCel={clearCel}
+            reorderLayers={reorderLayers}
+            updateLayerOpacity={updateLayerOpacity}
+            updateLayerBlendMode={updateLayerBlendMode}
+            mergeLayerDown={mergeLayerDown}
+            gridSize={gridSize}
           />
         </div>
 
@@ -617,6 +701,7 @@ function EditorContent() {
               mirrorMode={mirrorMode}
               onionSkin={onionSkin}
               onZoom={setZoom}
+              toyMode={toyMode}
             />
           </div>
 
@@ -632,7 +717,7 @@ function EditorContent() {
                 e.stopPropagation();
                 setIsTimelineExpanded(!isTimelineExpanded);
               }}
-              className="absolute -top-[14px] bg-panel border border-border px-4 py-1 text-[9px] font-bold tracking-widest uppercase rounded-full shadow-lg hover:bg-accent hover:text-black transition-colors"
+              className="absolute -top-[14px] bg-panel border border-border px-4 py-1 text-[9px] font-bold tracking-widest uppercase rounded-full shadow-lg hover:border-accent transition-colors duration-200"
             >
               {isTimelineExpanded ? '▼ Close Frames' : '▲ Open Frames'}
             </button>
@@ -654,7 +739,7 @@ function EditorContent() {
               setSelectedLayer={setSelectedLayerId}
               addLayer={addLayer}
               addFrame={handleAddFrameLayered}
-              deleteFrame={deleteFrame}
+              onDeleteFrame={handleDeleteFrameRequest}
               unlinkCel={unlinkCel}
               isPlaying={isPlaying}
               setIsPlaying={setIsPlaying}
@@ -672,14 +757,14 @@ function EditorContent() {
                 <div className="flex items-center border border-border bg-panel">
                   <button 
                     onClick={() => setGridSize(Math.max(8, gridSize - 8))}
-                    className="w-8 h-8 flex items-center justify-center border-r border-border hover:bg-accent hover:text-black transition-colors"
+                    className="w-8 h-8 flex items-center justify-center border-r border-border hover-accent"
                   >
                     &lt;
                   </button>
                   <div className="px-3 text-[10px] font-bold">{gridSize} X {gridSize}</div>
                   <button 
                     onClick={() => setGridSize(Math.min(64, gridSize + 8))}
-                    className="w-8 h-8 flex items-center justify-center border-l border-border hover:bg-accent hover:text-black transition-colors"
+                    className="w-8 h-8 flex items-center justify-center border-l border-border hover-accent"
                   >
                     &gt;
                   </button>
@@ -711,8 +796,8 @@ function EditorContent() {
                   Export <span>▼</span>
                 </button>
                 <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block bg-panel border border-border shadow-lg z-30">
-                  <button onClick={handleExportPNG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-accent hover:text-black transition-colors">PNG</button>
-                  <button onClick={handleExportSVG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-accent hover:text-black transition-colors">SVG</button>
+                  <button onClick={handleExportPNG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover-accent">PNG</button>
+                  <button onClick={handleExportSVG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover-accent">SVG</button>
                 </div>
               </div>
               <button
@@ -745,6 +830,9 @@ function EditorContent() {
             currentFrame={currentFrame}
             onionSkin={onionSkin}
             setOnionSkin={setOnionSkin}
+            selectedLayerId={selectedLayerId}
+            updateLayerOpacity={updateLayerOpacity}
+            updateLayerBlendMode={updateLayerBlendMode}
             darkMode={darkMode}
             onExportPNG={handleExportPNG}
             onExportSVG={handleExportSVG}
@@ -765,6 +853,16 @@ function EditorContent() {
       <ShortcutsReference
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
+      />
+      <DeleteFrameModal
+        isOpen={frameToDelete !== null}
+        onClose={() => setFrameToDelete(null)}
+        onConfirm={() => {
+          if (frameToDelete) {
+            performDeleteFrame(frameToDelete.id);
+          }
+        }}
+        frameIndex={frameToDelete?.index || 0}
       />
     </div>
   );

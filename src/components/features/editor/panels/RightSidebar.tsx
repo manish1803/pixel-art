@@ -44,6 +44,11 @@ interface RightSidebarProps {
   setPan: (pan: { x: number; y: number }) => void;
   isPlaying: boolean;
   fps: number;
+
+  // Layer Properties
+  selectedLayerId: string;
+  updateLayerOpacity: (layerId: string, opacity: number) => void;
+  updateLayerBlendMode: (layerId: string, blendMode: GlobalCompositeOperation) => void;
 }
 
 export function RightSidebar({
@@ -73,9 +78,13 @@ export function RightSidebar({
   setPan,
   isPlaying,
   fps,
+  selectedLayerId,
+  updateLayerOpacity,
+  updateLayerBlendMode,
 }: RightSidebarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeTab, setActiveTab] = useState<'tools' | 'studio'>('tools');
+  const selectedLayer = state.layers.find(l => l.id === selectedLayerId);
 
   const [previewFrame, setPreviewFrame] = useState(0);
 
@@ -183,6 +192,7 @@ export function RightSidebar({
       <div className="flex border-b border-border">
         <button
           onClick={() => setActiveTab('tools')}
+          onMouseUp={(e) => e.currentTarget.blur()}
           className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
             activeTab === 'tools' ? 'text-accent border-b-2 border-accent' : 'text-muted hover:text-foreground'
           }`}
@@ -191,6 +201,7 @@ export function RightSidebar({
         </button>
         <button
           onClick={() => setActiveTab('studio')}
+          onMouseUp={(e) => e.currentTarget.blur()}
           className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
             activeTab === 'studio' ? 'text-accent border-b-2 border-accent' : 'text-muted hover:text-foreground'
           }`}
@@ -202,12 +213,59 @@ export function RightSidebar({
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'tools' && (
           <>
+            {/* Layer Properties */}
+            <PanelSection title="Layer Properties">
+              {selectedLayer ? (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Opacity</span>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={selectedLayer.opacity !== undefined ? selectedLayer.opacity : 100}
+                        onChange={(e) => updateLayerOpacity(selectedLayer.id, parseInt(e.target.value))}
+                        className="w-24 h-1"
+                      />
+                      <span className="text-xs w-8 text-right">{selectedLayer.opacity !== undefined ? selectedLayer.opacity : 100}%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Blend Mode</span>
+                    <select
+                      value={selectedLayer.blendMode || 'source-over'}
+                      onChange={(e) => updateLayerBlendMode(selectedLayer.id, e.target.value as GlobalCompositeOperation)}
+                      className="bg-panel border border-border rounded text-xs px-2 py-1"
+                    >
+                      <option value="source-over">Normal</option>
+                      <option value="multiply">Multiply</option>
+                      <option value="screen">Screen</option>
+                      <option value="overlay">Overlay</option>
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-muted text-center py-2">No Layer Selected</div>
+              )}
+            </PanelSection>
+
             {/* 1. TOOLS */}
             <PanelSection title="Tools">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Onion Skin</span>
+                <button
+                  onClick={() => setOnionSkin(!onionSkin)}
+                  className={`w-10 h-5 rounded-full p-0.5 transition-colors ${onionSkin ? 'bg-accent' : 'bg-border'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-foreground transform transition-transform ${onionSkin ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
               <div className="flex gap-2 mb-4">
                 <Tooltip content="Fill Tool" shortcut="F" className="flex-1">
                   <button
                     onClick={() => setTool('fill')}
+                    onMouseUp={(e) => e.currentTarget.blur()}
                     className={`w-full py-2 border text-[10px] font-bold uppercase tracking-widest transition-colors ${
                       tool === 'fill' ? 'bg-accent/10 border-accent text-accent' : 'bg-transparent border-border text-foreground opacity-40'
                     }`}
@@ -218,6 +276,7 @@ export function RightSidebar({
                 <Tooltip content="Erase Tool" shortcut="E" className="flex-1">
                   <button
                     onClick={() => setTool('erase')}
+                    onMouseUp={(e) => e.currentTarget.blur()}
                     className={`w-full py-2 border text-[10px] font-bold uppercase tracking-widest transition-colors ${
                       tool === 'erase' ? 'bg-accent/10 border-accent text-accent' : 'bg-transparent border-border text-foreground opacity-40'
                     }`}
@@ -228,6 +287,7 @@ export function RightSidebar({
                 <Tooltip content="Selection Tool" shortcut="S" className="flex-1">
                   <button
                     onClick={() => setTool('selection')}
+                    onMouseUp={(e) => e.currentTarget.blur()}
                     className={`w-full py-2 border text-[10px] font-bold uppercase tracking-widest transition-colors ${
                       tool === 'selection' ? 'bg-accent/10 border-accent text-accent' : 'bg-transparent border-border text-foreground opacity-40'
                     }`}
@@ -347,14 +407,14 @@ export function RightSidebar({
                 <div className="flex items-center border border-border bg-panel/50">
                   <button 
                     onClick={() => setZoom((prev: number) => Math.max(0.1, prev - 0.25))}
-                    className="w-6 h-6 flex items-center justify-center border-r border-border hover:bg-accent hover:text-black transition-colors text-xs font-bold"
+                    className="w-6 h-6 flex items-center justify-center border-r border-border hover-accent text-xs font-bold"
                   >
                     -
                   </button>
                   <div className="px-3 text-[10px] font-mono font-bold min-w-[50px] text-center">{Math.round(zoom * 100)}%</div>
                   <button 
                     onClick={() => setZoom((prev: number) => Math.min(10, prev + 0.25))}
-                    className="w-6 h-6 flex items-center justify-center border-l border-border hover:bg-accent hover:text-black transition-colors text-xs font-bold"
+                    className="w-6 h-6 flex items-center justify-center border-l border-border hover-accent text-xs font-bold"
                   >
                     +
                   </button>
@@ -372,15 +432,6 @@ export function RightSidebar({
                     onIncrement={() => setGridSize(Math.min(64, gridSize + 8))}
                     onDecrement={() => setGridSize(Math.max(8, gridSize - 8))}
                   />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Onion Skin</span>
-                  <button
-                    onClick={() => setOnionSkin(!onionSkin)}
-                    className={`w-10 h-5 rounded-full p-0.5 transition-colors ${onionSkin ? 'bg-accent' : 'bg-border'}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full bg-foreground transform transition-transform ${onionSkin ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
                 </div>
               </div>
             </PanelSection>

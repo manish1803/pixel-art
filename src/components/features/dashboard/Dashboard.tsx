@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Plus, FolderPlus, ArrowLeft } from 'lucide-react';
+import { Plus, FolderPlus, ArrowLeft, Layers, Search, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ProjectCard } from './ProjectCard';
@@ -46,12 +46,14 @@ interface DashboardProps {
   onMoveToFolder: (projectId: string, folderId: string | null) => void;
 }
 
-function SectionEmptyState({ label }: { label: string; darkMode: boolean }) {
+function SectionEmptyState({ label, icon, action }: { label: string; icon?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="col-span-full border border-dashed border-border flex items-center justify-center py-8 text-center">
-      <span className="text-[10px] font-bold uppercase tracking-widest opacity-30 text-foreground">
-        {label}
-      </span>
+    <div className="col-span-full flex flex-col items-center justify-center py-10 text-center border border-dashed border-border rounded-xl bg-panel/10">
+      <div className="w-12 h-12 rounded-full bg-panel border border-border flex items-center justify-center mb-3">
+        {icon || <Plus className="w-5 h-5 text-muted" />}
+      </div>
+      <h3 className="text-xs font-bold text-foreground mb-1">{label}</h3>
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }
@@ -72,6 +74,7 @@ function Section({
   onDeleteFolder,
   onMoveToFolder,
   onAddFolder,
+  onNewProject,
   allFolders,
 }: {
   title: string | React.ReactNode;
@@ -89,6 +92,7 @@ function Section({
   onDeleteFolder?: (id: string) => void;
   onMoveToFolder: (projectId: string, folderId: string | null) => void;
   onAddFolder?: () => void;
+  onNewProject?: () => void;
   allFolders: Folder[];
 }) {
   return (
@@ -107,7 +111,7 @@ function Section({
         {onAddFolder && (
           <button
             onClick={(e) => { e.stopPropagation(); onAddFolder(); }}
-            className="h-8 px-3 border border-border flex items-center gap-2 text-[8px] font-bold uppercase tracking-widest transition-colors hover:bg-accent hover:text-black text-foreground"
+            className="h-8 px-3 border border-border flex items-center gap-2 text-[8px] font-bold uppercase tracking-widest hover-accent text-foreground"
           >
             <FolderPlus className="w-3 h-3" />
             <span>New Folder</span>
@@ -116,7 +120,25 @@ function Section({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {projects.length === 0 && folders.length === 0 ? (
-          <SectionEmptyState label={emptyLabel} darkMode={darkMode} />
+          title === "Favourites" || title === "Drafts" ? (
+            <div className="col-span-full text-[10px] text-muted opacity-50 px-1 py-2">
+              {emptyLabel}
+            </div>
+          ) : (
+            <SectionEmptyState 
+              label={emptyLabel} 
+              action={
+                onNewProject && (
+                  <button
+                    onClick={onNewProject}
+                    className="text-[10px] font-bold uppercase tracking-widest text-accent hover:underline"
+                  >
+                    Start your first animation
+                  </button>
+                )
+              }
+            />
+          )
         ) : (
           <>
             {folders.map((folder) => (
@@ -183,12 +205,20 @@ export function Dashboard({
       <Sidebar 
         favourites={favourites} 
         onOpenProject={onOpenProject} 
-        onNewProject={onNewProject} 
       />
       <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top Nav */}
       <nav className="h-16 border-b border-border flex items-center justify-between px-8 shrink-0">
-        <Logo />
+        <div className="flex items-center gap-8 flex-1">
+          <Logo />
+          
+          {/* Search Bar */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-panel/50 border border-border rounded-lg w-64 text-muted cursor-pointer hover:border-accent/50 transition-colors">
+            <Search className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-medium">Search projects...</span>
+            <span className="text-[9px] font-bold tracking-widest text-muted/50 ml-auto">⌘K</span>
+          </div>
+        </div>
 
         <div className="flex items-center gap-6">
           {/* Dark mode toggle */}
@@ -205,13 +235,13 @@ export function Dashboard({
             </button>
           </div>
 
-          {/* New Project */}
           <button
             onClick={onNewProject}
-            className="h-9 px-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors shadow-lg active:scale-95 bg-foreground text-background"
+            className="h-9 px-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors shadow-lg active:scale-95 bg-foreground text-background relative overflow-hidden group"
           >
-            <Plus className="w-3 h-3" />
-            New Project
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-80 h-80 bg-zinc-100 rounded-full scale-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-100 dark:bg-accent" />
+            <Plus className="w-3 h-3 relative z-10 transition-colors group-hover:text-zinc-950" />
+            <span className="relative z-10 transition-colors group-hover:text-zinc-950">New Project</span>
           </button>
 
           <UserMenu
@@ -244,22 +274,81 @@ export function Dashboard({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-10">
-          {/* Launchpad / Hero */}
-          <div className="bg-panel/30 border border-border rounded-xl p-6 relative overflow-hidden">
-            <div className="max-w-2xl">
-              <h1 className="text-xl font-bold text-foreground mb-1">Welcome back, {session?.user?.name || 'Creator'}</h1>
-              <p className="text-xs text-muted mb-4">Pick up where you left off or start a new creation.</p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button
-                  onClick={onNewProject}
-                  className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group"
-                >
-                  <Plus className="w-5 h-5 text-muted group-hover:text-accent mb-2 transition-colors" />
-                  <h3 className="text-xs font-bold text-foreground mb-0.5">Blank Canvas</h3>
-                  <p className="text-[10px] text-muted">Create a new pixel art file.</p>
-                </button>
+          {/* Quick Workspace */}
+          <div className="bg-panel/30 border border-border rounded-xl p-6 relative">
+            <div className="flex flex-col md:flex-row gap-6 justify-between">
+
+
+              {/* Left: Welcome & Quick Actions */}
+              <div className="flex-1 space-y-4 min-w-0">
+                <div>
+                  <h1 className="text-xl font-bold text-foreground mb-1">Welcome back, {session?.user?.name || 'Creator'}</h1>
+                  <p className="text-xs text-muted">What would you like to create today?</p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {/* Continue Working Card */}
+                  {projects.length > 0 && (
+                    <button
+                      onClick={() => onOpenProject(projects[0])}
+                      className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group flex items-center gap-3"
+                    >
+                      <div className="w-8 h-8 bg-panel border border-border rounded flex items-center justify-center group-hover:border-accent/50 transition-colors">
+                        <Clock className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-bold text-foreground truncate">{projects[0].name}</h3>
+                          <span className="text-[9px] text-muted">{projects[0].date}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-[9px] text-muted">
+                          <span>{projects[0].gridSize}x{projects[0].gridSize}</span>
+                          <span>•</span>
+                          <span>{projects[0].frames?.length || 1} frames</span>
+                        </div>
+                      </div>
+                    </button>
+                  )}
+                  <button
+                    onClick={onNewProject}
+                    className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 bg-panel border border-border rounded flex items-center justify-center group-hover:border-accent/50 transition-colors">
+                      <Plus className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground">New Animation</h3>
+                      <p className="text-[10px] text-muted">Start a blank canvas</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 bg-panel border border-border rounded flex items-center justify-center group-hover:border-accent/50 transition-colors">
+                      <FolderPlus className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground">Import Image</h3>
+                      <p className="text-[10px] text-muted">Convert image to pixel art</p>
+                    </div>
+                  </button>
+
+                  <button
+                    className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 bg-panel border border-border rounded flex items-center justify-center group-hover:border-accent/50 transition-colors">
+                      <Layers className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground">Create Tileset</h3>
+                      <p className="text-[10px] text-muted">For game assets</p>
+                    </div>
+                  </button>
+                </div>
               </div>
+
+
             </div>
           </div>
 
@@ -310,6 +399,7 @@ export function Dashboard({
             onDeleteFolder={onDeleteFolder}
             onMoveToFolder={onMoveToFolder}
             onAddFolder={() => setIsFolderModalOpen(true)}
+            onNewProject={onNewProject}
             allFolders={folders}
           />
 

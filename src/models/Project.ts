@@ -27,6 +27,7 @@ export interface IProject extends Document {
   animationState?: any;
   isFavourite: boolean;
   isDraft: boolean;
+  schemaVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +45,7 @@ const ProjectSchema = new Schema<IProject>(
     animationState: { type: Schema.Types.Mixed, default: null },
     isFavourite: { type: Boolean, default: false },
     isDraft:     { type: Boolean, default: false },
+    schemaVersion: { type: Number, default: 2 },
   },
   { timestamps: true }
 );

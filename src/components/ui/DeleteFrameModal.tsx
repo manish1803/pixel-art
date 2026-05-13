@@ -2,15 +2,14 @@
 import React, { useEffect } from 'react';
 import { Trash2, X } from 'lucide-react';
 
-interface DeleteModalProps {
+interface DeleteFrameModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  projectName: string;
-  darkMode: boolean;
+  frameIndex: number;
 }
 
-export function DeleteModal({ isOpen, onClose, onConfirm, projectName, darkMode }: DeleteModalProps) {
+export function DeleteFrameModal({ isOpen, onClose, onConfirm, frameIndex }: DeleteFrameModalProps) {
   // Prevent scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -43,7 +42,7 @@ export function DeleteModal({ isOpen, onClose, onConfirm, projectName, darkMode 
               <Trash2 className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">
-              Delete Project
+              Delete Frame
             </span>
           </div>
           <button 
@@ -57,7 +56,7 @@ export function DeleteModal({ isOpen, onClose, onConfirm, projectName, darkMode 
         {/* Body */}
         <div className="p-8">
           <p className="text-[11px] leading-relaxed tracking-wide text-muted">
-            Are you sure you want to delete <span className="font-bold text-foreground">"{projectName}"</span>? This action cannot be undone and all pixel data will be permanently removed.
+            Are you sure you want to delete <span className="font-bold text-foreground">Frame {frameIndex}</span>? This action cannot be undone and all pixel data for this frame will be permanently removed.
           </p>
         </div>
 

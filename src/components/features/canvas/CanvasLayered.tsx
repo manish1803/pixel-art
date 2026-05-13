@@ -18,6 +18,7 @@ interface CanvasLayeredProps {
   onionSkin?: boolean;
   onZoom?: (zoom: number | ((prev: number) => number)) => void;
   onUpdateSelection?: (frameId: string, layerId: string, selection: { x: number; y: number; w: number; h: number } | null) => void;
+  toyMode?: boolean;
 }
 
 export const CanvasLayered = React.memo(function CanvasLayered({
@@ -28,6 +29,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   onUpdateTransform,
   onUpdateSelection,
   gridSize,
+  toyMode = false,
   darkMode,
   zoom,
   pan,
@@ -45,6 +47,8 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectStart, setSelectStart] = useState<{ x: number; y: number } | null>(null);
   const [isOverSelection, setIsOverSelection] = useState(false);
+  const [activeHandle, setActiveHandle] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
+  const [hoveredHandle, setHoveredHandle] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
   const [localSelection, setLocalSelection] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [dashOffset, setDashOffset] = useState(0);
 
@@ -78,11 +82,21 @@ export const CanvasLayered = React.memo(function CanvasLayered({
 
       const step = e.shiftKey ? 5 : 1;
       const cel = findCel(state, currentFrameId, activeLayerId);
+      const activeLayer = state.layers.find(l => l.id === activeLayerId);
+      if (activeLayer?.isLocked) return;
+      
       const currentTransform = cel?.transform || { x: 0, y: 0, rotation: 0 };
 
       let dx = 0;
       let dy = 0;
       let dr = 0;
+
+      if (e.key === 'Escape') {
+        if (selection) {
+          onUpdateSelection?.(currentFrameId, activeLayerId, null);
+          return;
+        }
+      }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selection) {
@@ -178,6 +192,41 @@ export const CanvasLayered = React.memo(function CanvasLayered({
     ctx.fillStyle = canvasBg;
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
+    if (toyMode) {
+      const defaultColor = darkMode ? '#1a1a1a' : '#ffffff';
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const centerX = x * cellSize + cellSize / 2;
+          const centerY = y * cellSize + cellSize / 2;
+          const radius = cellSize * 0.35;
+
+          ctx.fillStyle = defaultColor;
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+          ctx.beginPath();
+          ctx.arc(centerX + cellSize * 0.04, centerY + cellSize * 0.04, radius, 0, Math.PI * 2);
+          ctx.fillStyle = darkMode ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.15)';
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+          ctx.fillStyle = defaultColor;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+          const grad = ctx.createLinearGradient(
+            centerX - radius, centerY - radius, 
+            centerX + radius, centerY + radius
+          );
+          grad.addColorStop(0, darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)');
+          grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
+      }
+    }
+
     const drawFrame = (frameId: string, alpha: number) => {
       state.layers.forEach((layer) => {
         if (!layer.isVisible) return;
@@ -189,7 +238,10 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         if (!celData) return;
 
         ctx.save();
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = alpha * (layer.opacity !== undefined ? layer.opacity / 100 : 1);
+        if (layer.blendMode) {
+          ctx.globalCompositeOperation = layer.blendMode;
+        }
 
         // Apply transforms
         if (cel.transform) {
@@ -206,8 +258,43 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         Object.entries(celData.pixels || {}).forEach(([key, color]) => {
           if (!color) return; // Skip transparent
           const [x, y] = key.split(',').map(Number);
-          ctx.fillStyle = color;
-          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          
+          if (toyMode) {
+            // Base block
+            ctx.fillStyle = color;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+            const centerX = x * cellSize + cellSize / 2;
+            const centerY = y * cellSize + cellSize / 2;
+            const radius = cellSize * 0.35;
+
+            // Drop shadow for the stud
+            ctx.beginPath();
+            ctx.arc(centerX + cellSize * 0.04, centerY + cellSize * 0.04, radius, 0, Math.PI * 2);
+            ctx.fillStyle = darkMode ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.15)';
+            ctx.fill();
+
+            // Main stud circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // 3D Highlight
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            const grad = ctx.createLinearGradient(
+              centerX - radius, centerY - radius, 
+              centerX + radius, centerY + radius
+            );
+            grad.addColorStop(0, darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)');
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+          } else {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
         });
 
         ctx.restore();
@@ -272,6 +359,22 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         cel.selection.w * cellSize,
         cel.selection.h * cellSize
       );
+
+      if (isActive) {
+        // Draw handles at corners
+        const handleSize = 6;
+        ctx.fillStyle = color;
+        ctx.setLineDash([]); // No dash for handles
+        
+        // NW
+        ctx.fillRect(cel.selection.x * cellSize - handleSize/2, cel.selection.y * cellSize - handleSize/2, handleSize, handleSize);
+        // NE
+        ctx.fillRect((cel.selection.x + cel.selection.w) * cellSize - handleSize/2, cel.selection.y * cellSize - handleSize/2, handleSize, handleSize);
+        // SW
+        ctx.fillRect(cel.selection.x * cellSize - handleSize/2, (cel.selection.y + cel.selection.h) * cellSize - handleSize/2, handleSize, handleSize);
+        // SE
+        ctx.fillRect((cel.selection.x + cel.selection.w) * cellSize - handleSize/2, (cel.selection.y + cel.selection.h) * cellSize - handleSize/2, handleSize, handleSize);
+      }
     });
 
     if (localSelection) {
@@ -321,14 +424,37 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const activeLayer = state.layers.find(l => l.id === activeLayerId);
+    if (activeLayer?.isLocked) return;
+
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
     const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
     const y = Math.floor((e.clientY - rect.top) / (rect.height / gridSize));
 
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
     if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
       if (tool === 'selection') {
+        if (selection) {
+          const handleSize = 8;
+          const nw = { x: selection.x * cellSize, y: selection.y * cellSize };
+          const ne = { x: (selection.x + selection.w) * cellSize, y: selection.y * cellSize };
+          const sw = { x: selection.x * cellSize, y: (selection.y + selection.h) * cellSize };
+          const se = { x: (selection.x + selection.w) * cellSize, y: (selection.y + selection.h) * cellSize };
+
+          const isNear = (pt: {x: number, y: number}) => {
+            return Math.abs(mouseX - pt.x) < handleSize && Math.abs(mouseY - pt.y) < handleSize;
+          };
+
+          if (isNear(nw)) { setActiveHandle('nw'); return; }
+          if (isNear(ne)) { setActiveHandle('ne'); return; }
+          if (isNear(sw)) { setActiveHandle('sw'); return; }
+          if (isNear(se)) { setActiveHandle('se'); return; }
+        }
+
         setIsSelecting(true);
         setSelectStart({ x, y });
         onUpdateSelection?.(currentFrameId, activeLayerId, { x, y, w: 1, h: 1 });
@@ -346,7 +472,26 @@ export const CanvasLayered = React.memo(function CanvasLayered({
     const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
     const y = Math.floor((e.clientY - rect.top) / (rect.height / gridSize));
 
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
     if (selection) {
+      const handleSize = 8;
+      const nw = { x: selection.x * cellSize, y: selection.y * cellSize };
+      const ne = { x: (selection.x + selection.w) * cellSize, y: selection.y * cellSize };
+      const sw = { x: selection.x * cellSize, y: (selection.y + selection.h) * cellSize };
+      const se = { x: (selection.x + selection.w) * cellSize, y: (selection.y + selection.h) * cellSize };
+
+      const isNear = (pt: {x: number, y: number}) => {
+        return Math.abs(mouseX - pt.x) < handleSize && Math.abs(mouseY - pt.y) < handleSize;
+      };
+
+      if (isNear(nw)) setHoveredHandle('nw');
+      else if (isNear(ne)) setHoveredHandle('ne');
+      else if (isNear(sw)) setHoveredHandle('sw');
+      else if (isNear(se)) setHoveredHandle('se');
+      else setHoveredHandle(null);
+
       if (x >= selection.x && x < selection.x + selection.w &&
           y >= selection.y && y < selection.y + selection.h) {
         setIsOverSelection(true);
@@ -355,6 +500,40 @@ export const CanvasLayered = React.memo(function CanvasLayered({
       }
     } else {
       setIsOverSelection(false);
+      setHoveredHandle(null);
+    }
+
+    if (activeHandle && selection) {
+      let newSelection = { ...selection };
+      
+      switch (activeHandle) {
+        case 'nw':
+          newSelection.w = selection.x + selection.w - x;
+          newSelection.h = selection.y + selection.h - y;
+          newSelection.x = x;
+          newSelection.y = y;
+          break;
+        case 'ne':
+          newSelection.w = x - selection.x + 1;
+          newSelection.h = selection.y + selection.h - y;
+          newSelection.y = y;
+          break;
+        case 'sw':
+          newSelection.w = selection.x + selection.w - x;
+          newSelection.x = x;
+          newSelection.h = y - selection.y + 1;
+          break;
+        case 'se':
+          newSelection.w = x - selection.x + 1;
+          newSelection.h = y - selection.y + 1;
+          break;
+      }
+      
+      if (newSelection.w < 1) newSelection.w = 1;
+      if (newSelection.h < 1) newSelection.h = 1;
+      
+      setLocalSelection(newSelection);
+      return;
     }
 
     if (isSelecting && selectStart) {
@@ -377,6 +556,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   const handleMouseUp = () => {
     setIsSelecting(false);
     setIsDrawing(false);
+    setActiveHandle(null);
     if (localSelection) {
       onUpdateSelection?.(currentFrameId, activeLayerId, localSelection);
       setLocalSelection(null);
@@ -411,8 +591,11 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         onMouseMove={handleMouseMove}
         className="border border-border shadow-2xl max-w-full max-h-full object-contain [image-rendering:pixelated]"
         style={{ 
-          cursor: tool === 'selection' ? (isOverSelection ? 'move' : 'crosshair') :
-                  'crosshair',
+          cursor: tool === 'selection' ? (
+            hoveredHandle === 'nw' || hoveredHandle === 'se' ? 'nwse-resize' :
+            hoveredHandle === 'ne' || hoveredHandle === 'sw' ? 'nesw-resize' :
+            isOverSelection ? 'move' : 'crosshair'
+          ) : 'crosshair',
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: 'center',
         }}
