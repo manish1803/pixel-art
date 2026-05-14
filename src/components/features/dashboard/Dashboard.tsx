@@ -11,6 +11,8 @@ import { UserMenu } from '@/components/shared/layout/UserMenu';
 import { CreateFolderModal } from '@/components/ui/CreateFolderModal';
 import { Logo } from '@/components/shared/Logo';
 import { TemplatesView } from './TemplatesView';
+import { ProjectsView } from './ProjectsView';
+import { TrashView } from './TrashView';
 
 export interface Project {
   id: string;
@@ -36,12 +38,14 @@ interface DashboardProps {
   setDarkMode: (v: boolean) => void;
   projects: Project[];
   folders: Folder[];
+  trashProjects: Project[];
   loading?: boolean;
   onNewProject: () => void;
   onOpenProject: (project: Project) => void;
   onToggleFavourite: (id: string) => void;
   onToggleDraft: (id: string) => void;
   onDeleteProject: (id: string) => void;
+  onRestoreProject: (id: string) => void;
   onCreateFolder: (name: string) => void;
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
@@ -194,6 +198,8 @@ export function Dashboard({
   activeView,
   onViewChange,
   onSelectTemplate,
+  trashProjects,
+  onRestoreProject,
 }: DashboardProps) {
   const [currentFolderId, setCurrentFolderId] = React.useState<string | null>(null);
   const [isFolderModalOpen, setIsFolderModalOpen] = React.useState(false);
@@ -287,6 +293,27 @@ export function Dashboard({
         <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-10">
           {activeView === 'templates' ? (
             <TemplatesView onSelectTemplate={onSelectTemplate} />
+          ) : activeView === 'projects' ? (
+            <ProjectsView
+              projects={projects}
+              folders={folders}
+              darkMode={darkMode}
+              onOpenProject={onOpenProject}
+              onToggleFavourite={onToggleFavourite}
+              onToggleDraft={onToggleDraft}
+              onDeleteProject={onDeleteProject}
+              onMoveToFolder={onMoveToFolder}
+              onAddFolder={() => setIsFolderModalOpen(true)}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
+            />
+          ) : activeView === 'trash' ? (
+            <TrashView
+              projects={trashProjects}
+              darkMode={darkMode}
+              onRestore={onRestoreProject}
+              onDelete={onDeleteProject}
+            />
           ) : (
             <>
               {/* Quick Workspace */}

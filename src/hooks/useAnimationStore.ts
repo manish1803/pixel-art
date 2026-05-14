@@ -375,9 +375,22 @@ export function useAnimationStore() {
     }
   }, [history, historyIndex]);
 
-  const dispatch = useCallback((action: Action) => {
+  const pushHistory = useCallback(() => {
+    setHistory(prevHistory => {
+      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      newHistory.push(state);
+      return newHistory;
+    });
+    setHistoryIndex(prevIndex => prevIndex + 1);
+  }, [historyIndex, state]);
+
+  const dispatch = useCallback((action: Action, skipHistory = false) => {
     const newState = animationReducer(state, action);
-    updateStateWithHistory(newState);
+    if (skipHistory) {
+      setState(newState);
+    } else {
+      updateStateWithHistory(newState);
+    }
   }, [state, updateStateWithHistory]);
 
   return {
@@ -388,8 +401,8 @@ export function useAnimationStore() {
       dispatch({ type: 'DELETE_FRAME', payload: { frameId } }),
     addLayer: (layerId: string, name: string) =>
       dispatch({ type: 'ADD_LAYER', payload: { layerId, name } }),
-    updatePixels: (frameId: string, layerId: string, pixels: { [key: string]: string }) =>
-      dispatch({ type: 'UPDATE_PIXELS', payload: { frameId, layerId, pixels } }),
+    updatePixels: (frameId: string, layerId: string, pixels: { [key: string]: string }, skipHistory = false) =>
+      dispatch({ type: 'UPDATE_PIXELS', payload: { frameId, layerId, pixels } }, skipHistory),
     unlinkCel: (frameId: string, layerId: string) =>
       dispatch({ type: 'UNLINK_CEL', payload: { frameId, layerId } }),
     clearCel: (frameId: string, layerId: string) =>
@@ -494,5 +507,6 @@ export function useAnimationStore() {
     },
     undo,
     redo,
+    pushHistory,
   };
 }

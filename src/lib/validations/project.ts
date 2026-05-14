@@ -24,7 +24,7 @@ export const UpdateProjectSchema = CreateProjectSchema.partial();
 
 // ----- Toggle -----
 export const ToggleFieldSchema = z.object({
-  field: z.enum(['isFavourite', 'isDraft']),
+  field: z.enum(['isFavourite', 'isDraft', 'isDeleted']),
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;

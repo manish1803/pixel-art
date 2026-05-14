@@ -6,7 +6,8 @@ interface CanvasLayeredProps {
   state: AnimationState;
   currentFrameId: string;
   activeLayerId: string;
-  onUpdatePixels: (frameId: string, layerId: string, pixels: { [key: string]: string }) => void;
+  onUpdatePixels: (frameId: string, layerId: string, pixels: { [key: string]: string }, skipHistory?: boolean) => void;
+  onPushHistory?: () => void;
   onUpdateTransform: (frameId: string, layerId: string, transform: { x: number; y: number; rotation: number }) => void;
   gridSize: number;
   darkMode: boolean;
@@ -19,6 +20,7 @@ interface CanvasLayeredProps {
   onZoom?: (zoom: number | ((prev: number) => number)) => void;
   onUpdateSelection?: (frameId: string, layerId: string, selection: { x: number; y: number; w: number; h: number } | null) => void;
   toyMode?: boolean;
+  brushSize?: number;
 }
 
 export const CanvasLayered = React.memo(function CanvasLayered({
@@ -38,6 +40,8 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   tool,
   mirrorMode = 'none',
   onionSkin = false,
+  brushSize = 1,
+  onPushHistory,
 }: CanvasLayeredProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -394,7 +398,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
     ctx.lineDashOffset = 0;
   };
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>, skipHistory = false) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
@@ -403,23 +407,35 @@ export const CanvasLayered = React.memo(function CanvasLayered({
 
     if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
       const colorToUse = tool === 'erase' ? '' : color;
-      const pixelsToUpdate: { [key: string]: string } = { [`${x},${y}`]: colorToUse };
+      const pixelsToUpdate: { [key: string]: string } = {};
       
-      if (mirrorMode === 'horizontal' || mirrorMode === 'both') {
-        const mx = gridSize - 1 - x;
-        pixelsToUpdate[`${mx},${y}`] = colorToUse;
-      }
-      if (mirrorMode === 'vertical' || mirrorMode === 'both') {
-        const my = gridSize - 1 - y;
-        pixelsToUpdate[`${x},${my}`] = colorToUse;
-      }
-      if (mirrorMode === 'both') {
-        const mx = gridSize - 1 - x;
-        const my = gridSize - 1 - y;
-        pixelsToUpdate[`${mx},${my}`] = colorToUse;
+      const offset = Math.floor(brushSize / 2);
+      for (let dy = -offset; dy < brushSize - offset; dy++) {
+        for (let dx = -offset; dx < brushSize - offset; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          
+          if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize) {
+            pixelsToUpdate[`${nx},${ny}`] = colorToUse;
+            
+            if (mirrorMode === 'horizontal' || mirrorMode === 'both') {
+              const mx = gridSize - 1 - nx;
+              pixelsToUpdate[`${mx},${ny}`] = colorToUse;
+            }
+            if (mirrorMode === 'vertical' || mirrorMode === 'both') {
+              const my = gridSize - 1 - ny;
+              pixelsToUpdate[`${nx},${my}`] = colorToUse;
+            }
+            if (mirrorMode === 'both') {
+              const mx = gridSize - 1 - nx;
+              const my = gridSize - 1 - ny;
+              pixelsToUpdate[`${mx},${my}`] = colorToUse;
+            }
+          }
+        }
       }
       
-      onUpdatePixels(currentFrameId, activeLayerId, pixelsToUpdate);
+      onUpdatePixels(currentFrameId, activeLayerId, pixelsToUpdate, skipHistory);
     }
   };
 
@@ -460,7 +476,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         onUpdateSelection?.(currentFrameId, activeLayerId, { x, y, w: 1, h: 1 });
       } else {
         setIsDrawing(true);
-        handleCanvasClick(e);
+        handleCanvasClick(e, true); // Don't push to history on start!
       }
     }
   };
@@ -549,11 +565,14 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         h: y2 - y1 + 1
       });
     } else if (isDrawing) {
-      handleCanvasClick(e);
+      handleCanvasClick(e, true); // Skip history on move!
     }
   };
 
   const handleMouseUp = () => {
+    if (isDrawing) {
+      onPushHistory?.(); // Push the whole stroke to history!
+    }
     setIsSelecting(false);
     setIsDrawing(false);
     setActiveHandle(null);

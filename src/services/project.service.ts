@@ -13,9 +13,12 @@ function serialize(doc: IProject) {
   };
 }
 
-export async function getProjectsByUser(userId: string) {
+export async function getProjectsByUser(userId: string, trash: boolean = false) {
   await connectToDatabase();
-  const docs = await Project.find({ userId }).sort({ createdAt: -1 });
+  const docs = await Project.find({ 
+    userId, 
+    isDeleted: trash ? true : { $ne: true } 
+  }).sort({ createdAt: -1 });
   return docs.map(serialize);
 }
 
@@ -67,14 +70,25 @@ export async function moveProjectToFolder(userId: string, projectId: string, fol
 
 export async function deleteProject(userId: string, id: string) {
   await connectToDatabase();
-  const doc = await Project.findOneAndDelete({ _id: id, userId });
-  return doc ? serialize(doc) : null;
+  const project = await Project.findOne({ _id: id, userId });
+  if (!project) return null;
+
+  if (project.isDeleted) {
+    // If already in trash, delete permanently!
+    const doc = await Project.findOneAndDelete({ _id: id, userId });
+    return doc ? serialize(doc) : null;
+  } else {
+    // Soft-delete!
+    project.isDeleted = true;
+    await project.save();
+    return serialize(project);
+  }
 }
 
 export async function toggleProjectField(
   userId: string,
   id: string,
-  field: 'isFavourite' | 'isDraft'
+  field: 'isFavourite' | 'isDraft' | 'isDeleted'
 ) {
   await connectToDatabase();
   const doc = await Project.findOne({ _id: id, userId });

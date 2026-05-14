@@ -31,6 +31,7 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
   const [darkMode, setDarkMode] = useState(true);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
+  const [trashProjects, setTrashProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('recents');
 
@@ -43,10 +44,12 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
       Promise.all([
         fetch('/api/projects', { cache: 'no-store' }).then((r) => r.json()),
         fetch('/api/folders', { cache: 'no-store' }).then((r) => r.json()),
+        fetch('/api/projects?trash=true', { cache: 'no-store' }).then((r) => r.json()),
       ])
-        .then(([pRes, fRes]) => {
+        .then(([pRes, fRes, tRes]) => {
           if (pRes.success) setProjects(pRes.data);
           if (fRes.success) setFolders(fRes.data);
+          if (tRes.success) setTrashProjects(tRes.data);
         })
         .catch(console.error)
         .finally(() => setLoading(false));
@@ -55,6 +58,7 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
       const saved = localStorage.getItem('pixel-art-projects');
       setProjects(saved ? JSON.parse(saved) : []);
       setFolders([]); // No folders in guest mode for now
+      setTrashProjects([]);
       setLoading(false);
     }
   }, [status, isAuthenticated]);
@@ -191,6 +195,7 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
       setDarkMode={setDarkMode}
       projects={projects}
       folders={folders}
+      trashProjects={trashProjects}
       loading={loading}
       onNewProject={handleNewProject}
       onOpenProject={handleOpenProject}
@@ -198,13 +203,37 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
       onToggleDraft={handleToggleDraft}
       onDeleteProject={async (id: string) => {
         const project = projects.find((p) => p.id === id);
+        const trashProj = trashProjects.find((p) => p.id === id);
+        
         const isTileset = (project as any)?.isTileset;
         const url = isTileset ? `/api/tilesets/${id}` : `/api/projects/${id}`;
         
         if (isAuthenticated) {
           await fetch(url, { method: 'DELETE' });
         }
-        setProjects((prev) => prev.filter((p) => p.id !== id));
+        
+        if (project) {
+          // Move to trash
+          setTrashProjects((prev) => [{ ...project, isDeleted: true }, ...prev]);
+          setProjects((prev) => prev.filter((p) => p.id !== id));
+        } else if (trashProj) {
+          // Delete permanently
+          setTrashProjects((prev) => prev.filter((p) => p.id !== id));
+        }
+      }}
+      onRestoreProject={async (id: string) => {
+        if (isAuthenticated) {
+          await fetch(`/api/projects/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field: 'isDeleted' }),
+          });
+        }
+        const restored = trashProjects.find((p) => p.id === id);
+        if (restored) {
+          setProjects((prev) => [{ ...restored, isDeleted: false }, ...prev]);
+          setTrashProjects((prev) => prev.filter((p) => p.id !== id));
+        }
       }}
       onCreateFolder={handleCreateFolder}
       onRenameFolder={handleRenameFolder}

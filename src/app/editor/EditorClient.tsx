@@ -29,7 +29,7 @@ function EditorContent() {
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user?.id;
 
-  const { state: animationState, updatePixels: updateAnimationPixels, addLayer, addFrame, deleteFrame, updateTransform, unlinkCel, clearCel, undo: undoLayered, redo: redoLayered, updateSelection, resetState, updateThumbnail, toggleLayerVisibility, toggleLayerLock, renameLayer, deleteLayer, duplicateLayer, reorderLayers, updateLayerOpacity, updateLayerBlendMode, mergeLayerDown } = useAnimationStore();
+  const { state: animationState, updatePixels: updateAnimationPixels, pushHistory, addLayer, addFrame, deleteFrame, updateTransform, unlinkCel, clearCel, undo: undoLayered, redo: redoLayered, updateSelection, resetState, updateThumbnail, toggleLayerVisibility, toggleLayerLock, renameLayer, deleteLayer, duplicateLayer, reorderLayers, updateLayerOpacity, updateLayerBlendMode, mergeLayerDown } = useAnimationStore();
   const [selectedFrameId, setSelectedFrameId] = useState('frame-1');
   const [selectedLayerId, setSelectedLayerId] = useState('layer-1');
   const [frameToDelete, setFrameToDelete] = useState<{ id: string, index: number } | null>(null);
@@ -89,6 +89,7 @@ function EditorContent() {
   }, [animationState, isFrameEmpty, performDeleteFrame]);
 
   const computedFrames = useMemo(() => {
+    if (!animationState || !animationState.frames) return [];
     return animationState.frames.map(frame => ({
       id: frame.id,
       pixels: getCompositedPixels(frame.id)
@@ -270,6 +271,7 @@ function EditorContent() {
 
   const getUsedColors = useCallback(() => {
     const colors = new Set<string>();
+    if (!animationState || !animationState.celData) return [];
     Object.values(animationState.celData).forEach((cel: any) => {
       Object.values(cel.pixels || {}).forEach((color: any) => {
         if (color && color !== 'transparent') {
@@ -278,7 +280,7 @@ function EditorContent() {
       });
     });
     return Array.from(colors);
-  }, [animationState.celData]);
+  }, [animationState?.celData]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -763,6 +765,8 @@ function EditorContent() {
               onionSkin={onionSkin}
               onZoom={setZoom}
               toyMode={toyMode}
+              brushSize={brushSize}
+              onPushHistory={pushHistory}
             />
           </div>
 
