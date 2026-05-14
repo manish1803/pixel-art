@@ -6,19 +6,21 @@ import { Project } from './Dashboard';
 interface SidebarProps {
   favourites: Project[];
   onOpenProject: (project: Project) => void;
+  activeView: string;
+  onViewChange: (view: string) => void;
 }
 
-export function Sidebar({ favourites, onOpenProject }: SidebarProps) {
+export function Sidebar({ favourites, onOpenProject, activeView, onViewChange }: SidebarProps) {
   return (
     <div className="w-64 h-full bg-zinc-950 border-r border-border flex flex-col justify-between p-4 shrink-0 text-foreground">
       <div className="space-y-6">
         {/* Main Navigation */}
         <div className="space-y-1">
-          <SidebarLink icon={<Clock className="w-4 h-4" />} label="Recents" active />
-          <SidebarLink icon={<Grid className="w-4 h-4" />} label="Projects" />
-          <SidebarLink icon={<Layers className="w-4 h-4" />} label="Templates" />
+          <SidebarLink icon={<Clock className="w-4 h-4" />} label="Recents" active={activeView === 'recents'} onClick={() => onViewChange('recents')} />
+          <SidebarLink icon={<Grid className="w-4 h-4" />} label="Projects" active={activeView === 'projects'} onClick={() => onViewChange('projects')} />
+          <SidebarLink icon={<Layers className="w-4 h-4" />} label="Templates" active={activeView === 'templates'} onClick={() => onViewChange('templates')} />
           <SidebarLink icon={<Globe className="w-4 h-4" />} label="Community" disabled />
-          <SidebarLink icon={<Trash2 className="w-4 h-4" />} label="Trash" />
+          <SidebarLink icon={<Trash2 className="w-4 h-4" />} label="Trash" active={activeView === 'trash'} onClick={() => onViewChange('trash')} />
         </div>
 
         {/* Pinned Projects */}
@@ -73,9 +75,10 @@ interface SidebarLinkProps {
   label: string;
   active?: boolean;
   disabled?: boolean;
+  onClick?: () => void;
 }
 
-function SidebarLink({ icon, label, active = false, disabled = false }: SidebarLinkProps) {
+function SidebarLink({ icon, label, active = false, disabled = false, onClick }: SidebarLinkProps) {
   return (
     <button
       className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-medium rounded-lg transition-colors ${
@@ -86,6 +89,7 @@ function SidebarLink({ icon, label, active = false, disabled = false }: SidebarL
           : 'text-muted hover:text-foreground hover:bg-panel/30'
       }`}
       disabled={disabled}
+      onClick={onClick}
     >
       <span className={active ? 'text-accent' : 'text-muted'}>{icon}</span>
       <span>{label}</span>

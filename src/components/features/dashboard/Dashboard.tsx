@@ -10,6 +10,7 @@ import { ImportImageModal } from './ImportImageModal';
 import { UserMenu } from '@/components/shared/layout/UserMenu';
 import { CreateFolderModal } from '@/components/ui/CreateFolderModal';
 import { Logo } from '@/components/shared/Logo';
+import { TemplatesView } from './TemplatesView';
 
 export interface Project {
   id: string;
@@ -45,6 +46,9 @@ interface DashboardProps {
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
   onMoveToFolder: (projectId: string, folderId: string | null) => void;
+  activeView: string;
+  onViewChange: (view: string) => void;
+  onSelectTemplate: (template: any) => void;
 }
 
 function SectionEmptyState({ label, icon, action }: { label: string; icon?: React.ReactNode; action?: React.ReactNode }) {
@@ -187,6 +191,9 @@ export function Dashboard({
   onRenameFolder,
   onDeleteFolder,
   onMoveToFolder,
+  activeView,
+  onViewChange,
+  onSelectTemplate,
 }: DashboardProps) {
   const [currentFolderId, setCurrentFolderId] = React.useState<string | null>(null);
   const [isFolderModalOpen, setIsFolderModalOpen] = React.useState(false);
@@ -207,6 +214,8 @@ export function Dashboard({
       <Sidebar 
         favourites={favourites} 
         onOpenProject={onOpenProject} 
+        activeView={activeView}
+        onViewChange={onViewChange}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top Nav */}
@@ -276,8 +285,12 @@ export function Dashboard({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-10">
-          {/* Quick Workspace */}
-          <div className="bg-panel/30 border border-border rounded-xl p-6 relative">
+          {activeView === 'templates' ? (
+            <TemplatesView onSelectTemplate={onSelectTemplate} />
+          ) : (
+            <>
+              {/* Quick Workspace */}
+              <div className="bg-panel/30 border border-border rounded-xl p-6 relative">
             <div className="flex flex-col md:flex-row gap-6 justify-between">
 
 
@@ -337,17 +350,7 @@ export function Dashboard({
                     </div>
                   </button>
 
-                  <button
-                    className="bg-panel border border-border hover:border-accent/50 rounded-lg p-4 text-left transition-colors group flex items-center gap-3"
-                  >
-                    <div className="w-8 h-8 bg-panel border border-border rounded flex items-center justify-center group-hover:border-accent/50 transition-colors">
-                      <Layers className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-foreground">Create Tileset</h3>
-                      <p className="text-[10px] text-muted">For game assets</p>
-                    </div>
-                  </button>
+
                 </div>
               </div>
 
@@ -405,6 +408,8 @@ export function Dashboard({
             onNewProject={onNewProject}
             allFolders={folders}
           />
+          </>
+          )}
 
           <CreateFolderModal 
             isOpen={isFolderModalOpen}

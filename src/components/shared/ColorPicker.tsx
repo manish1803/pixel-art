@@ -10,12 +10,13 @@ interface ColorPickerProps {
   setColor: (color: string) => void;
   recentColors: string[];
   addRecentColor: (color: string) => void;
+  activePalette?: string[];
   darkMode: boolean;
   onPickColor?: () => void;
   isPickerActive?: boolean;
 }
 
-export function ColorPicker({ color, setColor, recentColors, addRecentColor, darkMode, onPickColor, isPickerActive }: ColorPickerProps) {
+export function ColorPicker({ color, setColor, recentColors, addRecentColor, activePalette = [], darkMode, onPickColor, isPickerActive }: ColorPickerProps) {
   const [hsv, setHsv] = useState(() => hexToHsv(color));
   const [rgb, setRgb] = useState(() => hexToRgb(color));
   const [format, setFormat] = useState<'RGB' | 'HEX'>('RGB');
@@ -143,7 +144,7 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
         <div 
           ref={hueBoxRef}
           className="h-3 flex-1 relative cursor-pointer" 
-          style={{ background: 'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)' }}
+          style={{ background: 'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #00f)' }}
           onPointerDown={handleHueDown}
         />
       </div>
@@ -200,6 +201,29 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
         )}
       </div>
 
+      {/* Active Palette Swatches */}
+      {activePalette && activePalette.length > 0 && (
+        <Collapsible defaultOpen={true}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full pt-2">
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-foreground">ACTIVE PALETTE</div>
+            <ChevronRight className="w-3 h-3 opacity-40 text-foreground" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <div className="grid grid-cols-6 gap-2">
+              {activePalette.map((c, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setColor(c)}
+                  className={`aspect-square border ${color.toLowerCase() === c.toLowerCase() ? 'border-accent border-2' : 'border-border'}`} 
+                  style={{ backgroundColor: c }} 
+                  title={c}
+                />
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       {/* Recent Swatches */}
       <Collapsible defaultOpen={true}>
         <CollapsibleTrigger className="flex items-center justify-between w-full pt-2">
@@ -211,9 +235,10 @@ export function ColorPicker({ color, setColor, recentColors, addRecentColor, dar
             {recentColors.map((c, i) => (
               <button 
                 key={i} 
-                onClick={() => { setColor(c); addRecentColor(c); }}
-                className="aspect-square border border-border" 
+                onClick={() => setColor(c)}
+                className={`aspect-square border ${color.toLowerCase() === c.toLowerCase() ? 'border-accent border-2' : 'border-border'}`} 
                 style={{ backgroundColor: c }} 
+                title={c}
               />
             ))}
           </div>

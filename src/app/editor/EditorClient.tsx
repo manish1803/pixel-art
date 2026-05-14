@@ -107,7 +107,8 @@ function EditorContent() {
   const [toyMode, setToyMode] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
-  const [recentColors, setRecentColors] = useState(['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff']);
+  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [activePalette, setActivePalette] = useState<string[]>([]);
 
   const { frames, setFrames, setFramesWithoutHistory, undo, redo, clearHistory } = usePixelHistory([{ id: 1, pixels: {} }]);
 
@@ -205,7 +206,7 @@ function EditorContent() {
         setProjectName(project.name);
         setGridSize(project.gridSize || 32);
         if (project.palette) {
-          setRecentColors(project.palette);
+          setActivePalette(project.palette);
         }
         if (project.animationState) {
           resetState(project.animationState);
@@ -223,7 +224,7 @@ function EditorContent() {
 
   // Fetch project from API if missing from sessionStorage (e.g. on refresh)
   useEffect(() => {
-    if (!projectId || !isAuthenticated || projectId.startsWith('import_')) {
+    if (!projectId || !isAuthenticated || projectId.startsWith('import_') || projectId.startsWith('template_')) {
       setIsHydrated(true);
       return;
     }
@@ -267,15 +268,36 @@ function EditorContent() {
     fetchProject();
   }, [projectId, currentProjectId, isAuthenticated, setFramesWithoutHistory]);
 
+  const getUsedColors = useCallback(() => {
+    const colors = new Set<string>();
+    Object.values(animationState.celData).forEach((cel: any) => {
+      Object.values(cel.pixels || {}).forEach((color: any) => {
+        if (color && color !== 'transparent') {
+          colors.add(color.toLowerCase());
+        }
+      });
+    });
+    return Array.from(colors);
+  }, [animationState.celData]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    const usedColors = getUsedColors();
+    // Filter out colors that are already in the active palette
+    const activeLower = activePalette.map(c => c.toLowerCase());
+    const filtered = usedColors.filter(c => !activeLower.includes(c.toLowerCase()));
+    setRecentColors(filtered);
+  }, [isHydrated, getUsedColors, activePalette]);
+
+  const addRecentColor = useCallback((newColor: string) => {
+    // Handled automatically by the effect above
+  }, []);
+
   const syncToLocalStorage = useCallback((updater: (prev: any[]) => any[]) => {
     const saved = localStorage.getItem('pixel-art-projects');
     const all = saved ? JSON.parse(saved) : [];
     const updated = updater(all);
     localStorage.setItem('pixel-art-projects', JSON.stringify(updated));
-  }, []);
-
-  const addRecentColor = useCallback((newColor: string) => {
-    setRecentColors(prev => [newColor, ...prev.filter(c => c.toLowerCase() !== newColor.toLowerCase())].slice(0, 18));
   }, []);
 
   const handleNewProject = useCallback(() => {
@@ -326,6 +348,7 @@ function EditorContent() {
       gridSize,
       frames, // Legacy fallback
       animationState, // New layered state
+      palette: activePalette, // Save active palette!
       isFavourite: false,
       isDraft: true, // Default to draft for auto-saves
       ...metadata
@@ -333,7 +356,7 @@ function EditorContent() {
 
     if (isAuthenticated && !isOffline) {
       // ── Cloud save (MongoDB) ──────────────────────────────────────
-      if (currentProjectId) {
+      if (currentProjectId && !currentProjectId.startsWith('template_') && !currentProjectId.startsWith('import_')) {
         await fetch(`/api/projects/${currentProjectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -355,7 +378,7 @@ function EditorContent() {
     } else {
       // ── Guest save (localStorage) ─────────────────────────────────
       syncToLocalStorage((prev) => {
-        if (currentProjectId) {
+        if (currentProjectId && !currentProjectId.startsWith('template_') && !currentProjectId.startsWith('import_')) {
           return prev.map((p) => (p.id === currentProjectId ? { ...p, ...projectData } : p));
         } else {
           const newId = Date.now().toString();
@@ -390,6 +413,35 @@ function EditorContent() {
       setSaveStatus('error');
     }
   }, [animationState, getCompositedPixels, gridSize, darkMode, isAuthenticated, handleSaveProject]);
+
+  const handleSaveAsTemplate = useCallback(async () => {
+    const name = prompt('Enter template name:', 'Untitled Template');
+    if (!name) return;
+    
+    const description = prompt('Enter template description:', '');
+    
+    const pixels = getCompositedPixels(selectedFrameId);
+    const colors = Array.from(new Set(Object.values(pixels))).filter(c => c !== 'transparent');
+    
+    const res = await fetch('/api/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        description,
+        gridSize,
+        palette: colors,
+        pixels,
+      }),
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('Template saved successfully!');
+    } else {
+      alert('Failed to save template.');
+    }
+  }, [getCompositedPixels, gridSize, selectedFrameId]);
 
   // ── Auto-save logic ────────────────────────────────────────────────
   useEffect(() => {
@@ -809,12 +861,17 @@ function EditorContent() {
                   <button onClick={handleExportSVG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover-accent">SVG</button>
                 </div>
               </div>
-              <button
-                onClick={() => performSave({ isDraft: false })}
-                className="px-4 py-2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest hover:bg-foreground/90 transition-colors flex items-center gap-1"
-              >
-                <span className="w-2 h-2 bg-background rounded-full inline-block" /> Save Project
-              </button>
+              <div className="relative group">
+                <button
+                  className="px-4 py-2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest hover:bg-foreground/90 transition-colors flex items-center gap-1"
+                >
+                  <span className="w-2 h-2 bg-background rounded-full inline-block" /> Save <span>▼</span>
+                </button>
+                <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block bg-panel border border-border shadow-lg z-30">
+                  <button onClick={() => performSave({ isDraft: false })} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-panel transition-colors">Save Project</button>
+                  <button onClick={handleSaveAsTemplate} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-panel transition-colors">Save as Template</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -832,6 +889,7 @@ function EditorContent() {
             mirrorMode={mirrorMode}
             setMirrorMode={setMirrorMode}
             recentColors={recentColors}
+            activePalette={activePalette}
             addRecentColor={addRecentColor}
             frames={computedFrames}
             gridSize={gridSize}

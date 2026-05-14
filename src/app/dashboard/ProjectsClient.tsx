@@ -32,6 +32,7 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState('recents');
 
   // ─── Load projects ──────────────────────────────────────────────────
   useEffect(() => {
@@ -119,15 +120,29 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
     [isAuthenticated]
   );
 
-  const handleDeleteProject = useCallback(
-    async (id: string) => {
-      if (isAuthenticated) {
-        await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-      }
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-    },
-    [isAuthenticated]
-  );
+  const handleSelectTemplate = useCallback((template: any) => {
+    const mockId = `template_${template.id}_${Date.now()}`;
+    const mockProject = {
+      id: mockId,
+      name: `New ${template.name}`,
+      date: new Date().toLocaleDateString(),
+      preview: '',
+      pixels: {},
+      gridSize: template.gridSize,
+      palette: template.palette,
+      frames: [{ id: 1, pixels: {} }],
+      animationState: {
+        layers: [{ id: 'layer-1', name: 'Layer 1', isVisible: true, isLocked: false, opacity: 100, blendMode: 'source-over' }],
+        frames: [{ id: 'frame-1' }],
+        cels: [{ layerId: 'layer-1', frameId: 'frame-1', dataId: 'data-1' }],
+        celData: { 'data-1': { id: 'data-1', pixels: {} } }
+      },
+      isFavourite: false,
+      isDraft: true
+    };
+    sessionStorage.setItem('open-project', JSON.stringify(mockProject));
+    router.push(`/editor?id=${mockId}`);
+  }, [router]);
 
   // ─── Folder Handlers ────────────────────────────────────────────────
   const handleCreateFolder = useCallback(async (name: string) => {
@@ -181,11 +196,23 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
       onOpenProject={handleOpenProject}
       onToggleFavourite={handleToggleFavourite}
       onToggleDraft={handleToggleDraft}
-      onDeleteProject={handleDeleteProject}
+      onDeleteProject={async (id: string) => {
+        const project = projects.find((p) => p.id === id);
+        const isTileset = (project as any)?.isTileset;
+        const url = isTileset ? `/api/tilesets/${id}` : `/api/projects/${id}`;
+        
+        if (isAuthenticated) {
+          await fetch(url, { method: 'DELETE' });
+        }
+        setProjects((prev) => prev.filter((p) => p.id !== id));
+      }}
       onCreateFolder={handleCreateFolder}
       onRenameFolder={handleRenameFolder}
       onDeleteFolder={handleDeleteFolder}
       onMoveToFolder={handleMoveToFolder}
+      activeView={activeView}
+      onViewChange={setActiveView}
+      onSelectTemplate={handleSelectTemplate}
     />
   );
 }

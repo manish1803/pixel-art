@@ -27,6 +27,7 @@ interface RightSidebarProps {
   setMirrorMode?: (mode: 'none' | 'vertical' | 'horizontal' | 'both') => void;
   recentColors: string[];
   addRecentColor: (color: string) => void;
+  activePalette?: string[];
   
   // Existing Props
   frames: Frame[];
@@ -62,6 +63,7 @@ export function RightSidebar({
   setMirrorMode,
   recentColors,
   addRecentColor,
+  activePalette = [],
   frames,
   gridSize,
   setGridSize,
@@ -302,6 +304,7 @@ export function RightSidebar({
                 setColor={setColor} 
                 recentColors={recentColors} 
                 addRecentColor={addRecentColor} 
+                activePalette={activePalette}
                 darkMode={darkMode} 
                 onPickColor={handlePickColor}
                 isPickerActive={tool === 'picker'}
