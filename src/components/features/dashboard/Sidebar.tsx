@@ -50,20 +50,9 @@ export function Sidebar({ favourites, onOpenProject, activeView, onViewChange }:
       </div>
 
       <div className="space-y-4">
-        {/* Storage Widget */}
-        <div className="px-3 py-2 bg-panel/30 rounded-lg border border-border space-y-2">
-          <div className="flex items-center justify-between text-[10px] text-muted">
-            <span>Storage</span>
-            <span>45% used</span>
-          </div>
-          <div className="w-full h-1 bg-panel rounded-full overflow-hidden">
-            <div className="h-full bg-accent w-[45%]" />
-          </div>
-        </div>
-
         {/* Footer Links */}
         <div className="space-y-1">
-          <SidebarLink icon={<Settings className="w-4 h-4" />} label="Settings" />
+          <SidebarLink icon={<Settings className="w-4 h-4" />} label="Settings" active={activeView === 'settings'} onClick={() => onViewChange('settings')} />
         </div>
       </div>
     </div>

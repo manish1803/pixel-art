@@ -13,6 +13,7 @@ import { Logo } from '@/components/shared/Logo';
 import { TemplatesView } from './TemplatesView';
 import { ProjectsView } from './ProjectsView';
 import { TrashView } from './TrashView';
+import { SettingsView } from './SettingsView';
 
 export interface Project {
   id: string;
@@ -202,17 +203,34 @@ export function Dashboard({
   onRestoreProject,
 }: DashboardProps) {
   const [currentFolderId, setCurrentFolderId] = React.useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [isFolderModalOpen, setIsFolderModalOpen] = React.useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
   const router = useRouter();
   const { data: session } = useSession();
+
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const favourites = projects.filter((p) => p.isFavourite);
   const drafts = projects.filter((p) => p.isDraft && !p.isFavourite);
   
   // Filter for the main view
   const currentFolders = currentFolderId ? [] : folders; // We only have one level for now
-  const filteredProjects = projects.filter(p => p.folderId === (currentFolderId || null));
+  const filteredProjects = projects.filter(p => 
+    p.folderId === (currentFolderId || null) &&
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   const currentFolderName = folders.find(f => f.id === currentFolderId)?.name;
 
   return (
@@ -230,9 +248,16 @@ export function Dashboard({
           <Logo />
           
           {/* Search Bar */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-panel/50 border border-border rounded-lg w-64 text-muted cursor-pointer hover:border-accent/50 transition-colors">
-            <Search className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-medium">Search projects...</span>
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-panel/50 border border-border rounded-lg w-64 text-muted hover:border-accent/50 transition-colors focus-within:border-accent/50">
+            <Search className="w-3.5 h-3.5 text-muted" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-none outline-none text-[10px] font-medium text-foreground placeholder-muted/50 w-full"
+            />
             <span className="text-[9px] font-bold tracking-widest text-muted/50 ml-auto">⌘K</span>
           </div>
         </div>
@@ -307,6 +332,8 @@ export function Dashboard({
               onRenameFolder={onRenameFolder}
               onDeleteFolder={onDeleteFolder}
             />
+          ) : activeView === 'settings' ? (
+            <SettingsView darkMode={darkMode} setDarkMode={setDarkMode} />
           ) : activeView === 'trash' ? (
             <TrashView
               projects={trashProjects}
