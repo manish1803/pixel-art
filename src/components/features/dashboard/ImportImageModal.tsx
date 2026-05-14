@@ -1,7 +1,12 @@
-'use client';
 import React, { useState, useRef } from 'react';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
-import { pixelateImage, reduceColors, convertImageDataToProjectPixels, applyDithering, convertImageDataToLayersByColor } from '@/lib/image-processor';
+import { pixelateImage, reduceColors, convertImageDataToProjectPixels, applyDithering, convertImageDataToLayersByColor, mapToPalette } from '@/lib/image-processor';
+
+const PALETTES: { [key: string]: string[] } = {
+  gameboy: ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'],
+  pico8: ['#000000', '#1D2B53', '#7E2553', '#008751', '#AB5236', '#5F574F', '#C2C3C7', '#FFF1E8', '#FF004D', '#FFA300', '#FFEC27', '#00E436', '#29ADFF', '#83769C', '#FF77A8', '#FFCCAA'],
+  nes: ['#7C7C7C', '#0054FF', '#2800FF', '#D800CC', '#E40058', '#E40000', '#D83800', '#B45400', '#887000', '#009600', '#00A800', '#008800', '#004040', '#000000', '#000000', '#000000']
+};
 
 interface ImportImageModalProps {
   isOpen: boolean;
@@ -17,6 +22,7 @@ export function ImportImageModal({ isOpen, onClose, onImport }: ImportImageModal
   const [useDithering, setUseDithering] = useState(false);
   const [resizeMode, setResizeMode] = useState<'fit' | 'crop' | 'stretch' | 'aspect'>('fit');
   const [importAsLayers, setImportAsLayers] = useState(false);
+  const [selectedPalette, setSelectedPalette] = useState('custom');
   const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,20 +42,38 @@ export function ImportImageModal({ isOpen, onClose, onImport }: ImportImageModal
     }
   };
 
-  const processImage = (imageSrc: string, size: number, colors: number, smooth: number = smoothing, dither: boolean = useDithering, mode: 'fit' | 'crop' | 'stretch' | 'aspect' = resizeMode) => {
+  const processImage = (imageSrc: string, size: number, colors: number, smooth: number = smoothing, dither: boolean = useDithering, mode: 'fit' | 'crop' | 'stretch' | 'aspect' = resizeMode, paletteKey: string = selectedPalette) => {
     setProcessing(true);
     const img = new Image();
     img.src = imageSrc;
     img.onload = () => {
-      const imageData = pixelateImage(img, size, smooth, mode);
-      const reducedData = dither ? applyDithering(imageData, colors) : reduceColors(imageData, colors);
+      let imageData = pixelateImage(img, size, smooth, mode);
+      
+      let finalPalette: string[] = [];
+      if (paletteKey === 'custom') {
+        const reducedData = reduceColors(imageData, colors);
+        const { palette } = convertImageDataToProjectPixels(reducedData);
+        finalPalette = palette;
+        if (dither) {
+          imageData = applyDithering(imageData, finalPalette);
+        } else {
+          imageData = reducedData;
+        }
+      } else {
+        finalPalette = PALETTES[paletteKey];
+        if (dither) {
+          imageData = applyDithering(imageData, finalPalette);
+        } else {
+          imageData = mapToPalette(imageData, finalPalette);
+        }
+      }
       
       const canvas = canvasRef.current;
       if (canvas) {
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext('2d')!;
-        ctx.putImageData(reducedData, 0, 0);
+        ctx.putImageData(imageData, 0, 0);
       }
       setProcessing(false);
     };
@@ -193,6 +217,25 @@ export function ImportImageModal({ isOpen, onClose, onImport }: ImportImageModal
                 }}
                 className="w-4 h-4 accent-accent"
               />
+            </div>
+
+            {/* Target Palette */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted">Target Palette</label>
+              <select
+                value={selectedPalette}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedPalette(val);
+                  if (selectedImage) processImage(selectedImage, gridSize, maxColors, smoothing, useDithering, resizeMode, val);
+                }}
+                className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground focus:outline-none focus:border-accent"
+              >
+                <option value="custom">Custom (Extract from image)</option>
+                <option value="gameboy">Game Boy</option>
+                <option value="pico8">PICO-8</option>
+                <option value="nes">NES</option>
+              </select>
             </div>
 
             {/* Resize Mode */}
