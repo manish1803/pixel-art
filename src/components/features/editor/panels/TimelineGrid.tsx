@@ -1,23 +1,16 @@
 'use client';
-import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, Unlock, Plus, Play, Pause, SkipForward, SkipBack, Unlink, Link, Copy, Trash2, Image } from 'lucide-react';
 import { AnimationState, findCel } from '@/lib/models/animation';
-import { DeleteFrameModal } from '@/components/ui/DeleteFrameModal';
+import { Copy, Image, Pause, Play, Plus, SkipBack, SkipForward, Trash2 } from 'lucide-react';
+import React from 'react';
+import { useEditorStore } from '@/hooks/useEditorStore';
 
 interface FramesGridProps {
   state: AnimationState;
-  selectedFrame: string;
-  setSelectedFrame: (id: string) => void;
-  selectedLayer: string;
-  setSelectedLayer: (id: string) => void;
   addLayer: (id: string, name: string) => void;
   addFrame: (id: string, copyFromId?: string) => void;
   onDeleteFrame: (id: string) => void;
   unlinkCel: (frameId: string, layerId: string) => void;
-  isPlaying: boolean;
-  setIsPlaying: (playing: boolean) => void;
   updateThumbnail?: (frameId: string) => void;
-  gridSize: number;
   darkMode: boolean;
 }
 
@@ -70,20 +63,22 @@ const FrameThumbnail = ({ frame, state, gridSize, darkMode }: { frame: { id: str
 
 export function FramesGrid({
   state,
-  selectedFrame,
-  setSelectedFrame,
-  selectedLayer,
-  setSelectedLayer,
   addLayer,
   addFrame,
   onDeleteFrame,
   unlinkCel,
-  isPlaying,
-  setIsPlaying,
   updateThumbnail,
-  gridSize,
   darkMode,
 }: FramesGridProps) {
+  const {
+    isPlaying, setIsPlaying,
+    selectedFrameId: selectedFrame,
+    setSelectedFrameId: setSelectedFrame,
+    selectedLayerId: selectedLayer,
+    setSelectedLayerId: setSelectedLayer,
+    gridSize,
+    fps,
+  } = useEditorStore();
 
 
   return (
@@ -122,7 +117,7 @@ export function FramesGrid({
           
           <div className="h-4 w-px bg-border mx-2" />
           
-          <span className="text-xs text-muted">FPS: 12</span>
+          <span className="text-xs text-muted">FPS: {fps}</span>
         </div>
       </div>
 

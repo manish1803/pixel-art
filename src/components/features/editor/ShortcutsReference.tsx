@@ -1,8 +1,8 @@
 'use client';
-import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
 import { SHORTCUTS, ShortcutDefinition } from '@/lib/constants/shortcuts';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface ShortcutsReferenceProps {
   isOpen: boolean;

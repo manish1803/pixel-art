@@ -1,13 +1,13 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { ChevronRight, Eye, EyeOff, Lock, Unlock, Plus, Trash2, Copy, Unlink, Link } from 'lucide-react';
-import { PanelContainer, PanelSection, PanelFooter } from '@/components/shared/PanelBase';
-import { CustomNumberInput } from '@/components/ui/CustomNumberInput';
-import { MiniMap } from './MiniMap';
 import { ColorPicker } from '@/components/shared/ColorPicker';
+import { PanelContainer, PanelFooter, PanelSection } from '@/components/shared/PanelBase';
+import { CustomNumberInput } from '@/components/ui/CustomNumberInput';
 import { DiscreteSlider } from '@/components/ui/DiscreteSlider';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { AnimationState, findCel } from '@/lib/models/animation';
+import { useEffect, useRef, useState } from 'react';
+import { useEditorStore } from '@/hooks/useEditorStore';
+import { MiniMap } from './MiniMap';
 
 interface Frame {
   id: string | number;
@@ -16,72 +16,40 @@ interface Frame {
 
 interface RightSidebarProps {
   state: AnimationState;
-  // Tools Props
-  tool: 'fill' | 'erase' | 'picker' | 'selection';
-  setTool: (tool: 'fill' | 'erase' | 'picker' | 'selection') => void;
-  color: string;
-  setColor: (color: string) => void;
-  brushSize: number;
-  setBrushSize: (size: number) => void;
-  mirrorMode?: 'none' | 'vertical' | 'horizontal' | 'both';
-  setMirrorMode?: (mode: 'none' | 'vertical' | 'horizontal' | 'both') => void;
-  recentColors: string[];
-  addRecentColor: (color: string) => void;
-  activePalette?: string[];
   
   // Existing Props
   frames: Frame[];
-  gridSize: number;
-  setGridSize: (size: number) => void;
   currentFrame: number;
-  onionSkin: boolean;
-  setOnionSkin: (value: boolean) => void;
   darkMode: boolean;
 
-  zoom: number;
-  setZoom: (zoom: number | ((prev: number) => number)) => void;
-  pan: { x: number; y: number };
-  setPan: (pan: { x: number; y: number }) => void;
-  isPlaying: boolean;
-  fps: number;
-
   // Layer Properties
-  selectedLayerId: string;
   updateLayerOpacity: (layerId: string, opacity: number) => void;
   updateLayerBlendMode: (layerId: string, blendMode: GlobalCompositeOperation) => void;
 }
 
 export function RightSidebar({
-  tool,
-  setTool,
-  color,
-  setColor,
-  brushSize,
-  setBrushSize,
-  mirrorMode = 'none',
-  setMirrorMode,
-  recentColors,
-  addRecentColor,
-  activePalette = [],
   frames,
-  gridSize,
-  setGridSize,
   currentFrame,
-  onionSkin,
-  setOnionSkin,
   darkMode,
-
-  zoom,
-  setZoom,
-  pan,
   state,
-  setPan,
-  isPlaying,
-  fps,
-  selectedLayerId,
   updateLayerOpacity,
   updateLayerBlendMode,
 }: RightSidebarProps) {
+  const {
+    tool, setTool,
+    color, setColor,
+    brushSize, setBrushSize,
+    mirrorMode, setMirrorMode,
+    recentColors, addRecentColor,
+    activePalette,
+    gridSize, setGridSize,
+    onionSkin, setOnionSkin,
+    zoom, setZoom,
+    pan, setPan,
+    isPlaying, fps,
+    selectedLayerId
+  } = useEditorStore();
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeTab, setActiveTab] = useState<'tools' | 'studio'>('tools');
   const selectedLayer = state.layers.find(l => l.id === selectedLayerId);

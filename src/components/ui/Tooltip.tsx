@@ -1,6 +1,6 @@
 'use client';
+import { AnimatePresence, motion } from 'framer-motion';
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface TooltipProps {
   content: string;

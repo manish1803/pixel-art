@@ -1,7 +1,7 @@
 'use client';
+import { Reorder } from 'framer-motion';
+import { Copy, GripVertical, Pause, Play, SkipBack, SkipForward, Trash2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { Copy, Trash2, GripVertical, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
-import { motion, Reorder } from 'framer-motion';
 
 interface Frame {
   id: number;

@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
 import { AnimationState, createInitialState, findCel } from '@/lib/models/animation';
+import { useCallback, useState } from 'react';
+import { produce } from 'immer';
 
 // Action Types
 type Action =
@@ -121,74 +122,47 @@ function animationReducer(state: AnimationState, action: Action): AnimationState
     }
 
     case 'UPDATE_PIXELS': {
-      const { frameId, layerId, pixels } = action.payload;
-      const cel = findCel(state, frameId, layerId);
-      if (!cel) return state; // Should not happen
+      return produce(state, (draft) => {
+        const { frameId, layerId, pixels } = action.payload;
+        const cel = draft.cels.find(c => c.frameId === frameId && c.layerId === layerId);
+        if (!cel) return;
 
-      // Update the shared CelData!
-      return {
-        ...state,
-        celData: {
-          ...state.celData,
-          [cel.dataId]: {
-            ...state.celData[cel.dataId],
-            pixels: (() => {
-              const p = { ...state.celData[cel.dataId].pixels };
-              Object.entries(pixels).forEach(([k, v]) => {
-                if (v === '') delete p[k];
-                else p[k] = v;
-              });
-              return p;
-            })(),
-          },
-        },
-      };
+        const celData = draft.celData[cel.dataId];
+        if (!celData) return;
+
+        Object.entries(pixels).forEach(([k, v]) => {
+          if (v === '') {
+            delete celData.pixels[k];
+          } else {
+            celData.pixels[k] = v;
+          }
+        });
+      });
     }
 
     case 'UNLINK_CEL': {
-      const { frameId, layerId } = action.payload;
-      const cel = findCel(state, frameId, layerId);
-      if (!cel) return state;
+      return produce(state, (draft) => {
+        const { frameId, layerId } = action.payload;
+        const cel = draft.cels.find(c => c.frameId === frameId && c.layerId === layerId);
+        if (!cel) return;
 
-      const currentData = state.celData[cel.dataId];
-      if (!currentData) return state;
+        const currentData = draft.celData[cel.dataId];
+        if (!currentData) return;
 
-      // Create a NEW unique data ID
-      const newDataId = `data-${frameId}-${layerId}-unique`;
-      
-      // Copy the pixels!
-      const newData = { id: newDataId, pixels: { ...currentData.pixels } };
-
-      // Update the cel to point to the new data
-      const newCels = state.cels.map((c) =>
-        c.frameId === frameId && c.layerId === layerId ? { ...c, dataId: newDataId } : c
-      );
-
-      return {
-        ...state,
-        cels: newCels,
-        celData: {
-          ...state.celData,
-          [newDataId]: newData,
-        },
-      };
+        const newDataId = `data-${frameId}-${layerId}-unique`;
+        draft.celData[newDataId] = { id: newDataId, pixels: { ...currentData.pixels } };
+        cel.dataId = newDataId;
+      });
     }
 
     case 'CLEAR_CEL': {
-      const { frameId, layerId } = action.payload;
-      const cel = findCel(state, frameId, layerId);
-      if (!cel) return state;
-
-      return {
-        ...state,
-        celData: {
-          ...state.celData,
-          [cel.dataId]: {
-            ...state.celData[cel.dataId],
-            pixels: {}, // Empty pixels!
-          },
-        },
-      };
+      return produce(state, (draft) => {
+        const { frameId, layerId } = action.payload;
+        const cel = draft.cels.find(c => c.frameId === frameId && c.layerId === layerId);
+        if (!cel) return;
+        const celData = draft.celData[cel.dataId];
+        if (celData) celData.pixels = {};
+      });
     }
 
     case 'UPDATE_TRANSFORM': {

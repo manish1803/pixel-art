@@ -1,8 +1,7 @@
 "use client";
-import React from "react";
 import Link from "next/link";
-import { Logo } from "../shared/Logo";
 import { FadeInSection } from "../shared/FadeInSection";
+import { Logo } from "../shared/Logo";
 
 export function Footer() {
   return (

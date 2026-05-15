@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
-import { Star, Pencil, Trash2, FileText, Folder as FolderIcon } from 'lucide-react';
 import { DeleteModal } from '@/components/ui/DeleteModal';
+import { Folder as FolderIcon, Star, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface Project {
   id: string;

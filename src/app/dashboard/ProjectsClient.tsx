@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { Dashboard } from '@/components/features/dashboard/Dashboard';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { get, set } from 'idb-keyval';
 
 interface Project {
   id: string;
@@ -54,19 +55,20 @@ export default function DashboardPage({ initialProjects = [], initialFolders = [
         .catch(console.error)
         .finally(() => setLoading(false));
     } else {
-      // Guest mode loads from localStorage
-      const saved = localStorage.getItem('pixel-art-projects');
-      setProjects(saved ? JSON.parse(saved) : []);
-      setFolders([]); // No folders in guest mode for now
-      setTrashProjects([]);
-      setLoading(false);
+      // Guest mode loads from IndexedDB
+      get('pixel-art-projects').then(saved => {
+        setProjects(saved ? saved : []);
+        setFolders([]); // No folders in guest mode for now
+        setTrashProjects([]);
+        setLoading(false);
+      });
     }
   }, [status, isAuthenticated]);
 
-  // Guest: persist to localStorage on every change
+  // Guest: persist to IndexedDB on every change
   useEffect(() => {
     if (!isAuthenticated && !loading) {
-      localStorage.setItem('pixel-art-projects', JSON.stringify(projects));
+      set('pixel-art-projects', projects).catch(console.error);
     }
   }, [projects, isAuthenticated, loading]);
 

@@ -1,10 +1,9 @@
 'use client';
-import React from 'react';
 import { ColorPicker } from '@/components/shared/ColorPicker';
-import { ShortcutsList } from '@/components/shared/ShortcutsList';
+import { PanelContainer, PanelFooter, PanelSection } from '@/components/shared/PanelBase';
 import { DiscreteSlider } from '@/components/ui/DiscreteSlider';
-import { PanelContainer, PanelSection, PanelFooter } from '@/components/shared/PanelBase';
 import { Tooltip } from '@/components/ui/Tooltip';
+import React from 'react';
 
 interface ToolsPanelProps {
   tool: 'fill' | 'erase' | 'picker';

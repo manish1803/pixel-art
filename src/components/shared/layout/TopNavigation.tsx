@@ -1,9 +1,9 @@
 'use client';
-import { Coffee, Undo2, Redo2 } from 'lucide-react';
+import { Redo2, Undo2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { UserMenu } from './UserMenu';
+import { useEffect, useState } from 'react';
 import { Logo } from '../Logo';
+import { UserMenu } from './UserMenu';
 
 interface TopNavigationProps {
   onUndo: () => void;

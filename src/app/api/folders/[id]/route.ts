@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/auth';
-import { updateFolder, deleteFolder } from '@/services/folder.service';
+import { deleteFolder, updateFolder } from '@/services/folder.service';
+import { NextRequest, NextResponse } from 'next/server';
 
 function unauthorized() {
   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

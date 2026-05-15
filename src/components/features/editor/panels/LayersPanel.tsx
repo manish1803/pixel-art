@@ -1,15 +1,13 @@
 'use client';
-import React from 'react';
-import { Eye, EyeOff, Lock, Unlock, Plus, Trash2, Copy, Unlink, Link, GripVertical } from 'lucide-react';
-import { AnimationState, findCel } from '@/lib/models/animation';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { AnimationState, findCel } from '@/lib/models/animation';
 import { Reorder } from 'framer-motion';
+import { Eye, EyeOff, GripVertical, Link, Lock, Plus, Unlink, Unlock } from 'lucide-react';
+import React from 'react';
+import { useEditorStore } from '@/hooks/useEditorStore';
 
 interface LayersPanelProps {
   state: AnimationState;
-  selectedFrame: string;
-  selectedLayer: string;
-  setSelectedLayer: (id: string) => void;
   addLayer: (id: string, name: string) => void;
   unlinkCel: (frameId: string, layerId: string) => void;
   toggleLayerVisibility: (layerId: string) => void;
@@ -22,14 +20,10 @@ interface LayersPanelProps {
   updateLayerOpacity: (layerId: string, opacity: number) => void;
   updateLayerBlendMode: (layerId: string, blendMode: GlobalCompositeOperation) => void;
   mergeLayerDown: (layerId: string, gridSize: number) => void;
-  gridSize: number;
 }
 
 export function LayersPanel({
   state,
-  selectedFrame,
-  selectedLayer,
-  setSelectedLayer,
   addLayer,
   unlinkCel,
   toggleLayerVisibility,
@@ -42,8 +36,14 @@ export function LayersPanel({
   updateLayerOpacity,
   updateLayerBlendMode,
   mergeLayerDown,
-  gridSize,
 }: LayersPanelProps) {
+  const {
+    selectedFrameId: selectedFrame,
+    selectedLayerId: selectedLayer,
+    setSelectedLayerId: setSelectedLayer,
+    gridSize,
+  } = useEditorStore();
+
   const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number; layerId: string } | null>(null);
 
   // Close context menu on click outside

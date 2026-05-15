@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
 import { auth } from '@/lib/auth/auth';
+import { ToggleFieldSchema, UpdateProjectSchema } from '@/lib/validations/project';
 import {
-  updateProject,
-  deleteProject,
-  toggleProjectField,
-  getProjectById,
+    deleteProject,
+    getProjectById,
+    toggleProjectField,
+    updateProject,
 } from '@/services/project.service';
-import { UpdateProjectSchema, ToggleFieldSchema } from '@/lib/validations/project';
+import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
+export const dynamic = 'force-dynamic';
 
 function unauthorized() {
   return NextResponse.json(

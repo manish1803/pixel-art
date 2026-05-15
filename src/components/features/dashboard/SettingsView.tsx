@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
-import { User, Sun, Moon, Grid, Save, Trash2, Shield, Bell } from 'lucide-react';
+import { Grid, Shield, Trash2, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 
 interface SettingsViewProps {
   darkMode: boolean;

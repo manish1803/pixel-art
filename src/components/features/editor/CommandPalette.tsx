@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { Search, Command as CommandIcon, Undo, Redo, Trash2, Save, Download, Sun, Moon, Layers, Clock } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Command as CommandIcon, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface Command {
   id: string;

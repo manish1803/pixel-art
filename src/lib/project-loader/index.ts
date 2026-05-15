@@ -1,6 +1,6 @@
 import { runMigrations } from '@/lib/migrations';
-import { validateProject } from './validate';
 import { normalizeProject } from './normalize';
+import { validateProject } from './validate';
 
 export async function loadProject(rawProject: any): Promise<any> {
   console.info(`[ProjectLoader] Loading project: ${rawProject.name || 'Untitled'}`);

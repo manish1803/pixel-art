@@ -1,7 +1,7 @@
 'use client';
-import React, { useRef, useEffect, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { CustomNumberInput } from '@/components/ui/CustomNumberInput';
+import { ChevronRight } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface CanvasAreaProps {
   projectName: string;

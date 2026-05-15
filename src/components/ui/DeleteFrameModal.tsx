@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect } from 'react';
 import { Trash2, X } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface DeleteFrameModalProps {
   isOpen: boolean;

@@ -1,9 +1,9 @@
 'use client';
 
+import { Github } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { Github } from 'lucide-react';
 
 function SignInContent() {
   const searchParams = useSearchParams();

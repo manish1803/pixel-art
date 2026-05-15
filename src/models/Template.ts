@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface ITemplate extends Document {
   userId: string; // User who created it. Null or 'system' for default templates.

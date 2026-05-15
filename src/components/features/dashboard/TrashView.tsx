@@ -1,7 +1,6 @@
 'use client';
-import React from 'react';
+import { RotateCcw, Trash, Trash2 } from 'lucide-react';
 import { Project } from './Dashboard';
-import { Trash2, RotateCcw, Trash } from 'lucide-react';
 
 interface TrashViewProps {
   projects: Project[];

@@ -1,6 +1,6 @@
 'use client';
+import { Clock, Globe, Grid, Layers, Settings, Star, Trash2 } from 'lucide-react';
 import React from 'react';
-import { Clock, Grid, Layers, Trash2, Star, Globe, Settings } from 'lucide-react';
 import { Project } from './Dashboard';
 
 interface SidebarProps {

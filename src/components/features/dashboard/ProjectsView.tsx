@@ -1,9 +1,9 @@
 'use client';
-import React, { useState } from 'react';
-import { ProjectCard } from './ProjectCard';
-import { FolderCard } from './FolderCard';
-import { Project } from './Dashboard';
 import { FolderPlus, Grid, List, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Project } from './Dashboard';
+import { FolderCard } from './FolderCard';
+import { ProjectCard } from './ProjectCard';
 
 interface Folder {
   id: string;

@@ -1,11 +1,13 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Download, Play, Pause, Square, Layers, Image as ImageIcon, Film, Maximize2 } from 'lucide-react';
 import { AnimationState } from '@/lib/models/animation';
-import { renderFrameToCanvas } from '@/lib/utils/export/render';
-import { exportPNG } from '@/lib/utils/export/png';
 import { exportGIF } from '@/lib/utils/export/gif';
+import { exportPNG } from '@/lib/utils/export/png';
+import { renderFrameToCanvas } from '@/lib/utils/export/render';
 import { exportSVG } from '@/lib/utils/export/svg';
+import { Download, Maximize2, Pause, Play, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+
+import { useEditorStore } from '@/hooks/useEditorStore';
 
 const JSZIP_URL = 'https://esm.sh/jszip';
 
@@ -13,12 +15,12 @@ interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   state: AnimationState;
-  gridSize: number;
   projectName: string;
   initialFormat?: 'png' | 'gif' | 'svg';
 }
 
-export function ExportModal({ isOpen, onClose, state, gridSize, projectName, initialFormat }: ExportModalProps) {
+export function ExportModal({ isOpen, onClose, state, projectName, initialFormat }: ExportModalProps) {
+  const { gridSize } = useEditorStore();
   const [format, setFormat] = useState<'png' | 'gif' | 'svg' | 'zip'>(initialFormat || 'png');
   const [scale, setScale] = useState(4); // Default 4x
   const [includeBackground, setIncludeBackground] = useState(false);

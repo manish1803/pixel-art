@@ -32,6 +32,7 @@ export async function exportGIF({
   // and to ensure it only runs in the browser.
   let gifenc: any;
   try {
+    // @ts-ignore: Dynamic import from CDN
     gifenc = await import(/* webpackIgnore: true */ 'https://unpkg.com/gifenc@1.0.3/dist/gifenc.esm.js');
   } catch (e) {
     console.error('Failed to load gifenc from CDN', e);

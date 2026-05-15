@@ -1,5 +1,5 @@
-import { Metadata } from 'next';
 import { getProject } from '@/services/project.service';
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 interface ProjectPageProps {

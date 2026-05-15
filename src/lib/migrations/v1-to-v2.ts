@@ -1,6 +1,6 @@
+import { AnimationState } from '@/lib/models/animation';
 import { ProjectV1 } from '@/lib/project-schema/v1';
 import { ProjectV2 } from '@/lib/project-schema/v2';
-import { AnimationState } from '@/lib/models/animation';
 
 export function migrateV1ToV2(project: ProjectV1): ProjectV2 {
   // Normalize frames or fallback to pixels

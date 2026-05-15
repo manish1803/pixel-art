@@ -1,6 +1,6 @@
+import { getProject } from '@/services/project.service';
 import { Metadata } from 'next';
 import EditorClient from './EditorClient';
-import { getProject } from '@/services/project.service';
 
 interface EditorPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

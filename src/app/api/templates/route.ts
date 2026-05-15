@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
 import { auth } from '@/lib/auth/auth';
+import { defaultTemplates } from '@/lib/data/defaultTemplates';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Template } from '@/models/Template';
-import { defaultTemplates } from '@/lib/data/defaultTemplates';
+import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 function unauthorized() {
   return NextResponse.json(

@@ -1,6 +1,6 @@
 'use client';
-import React, { useRef, useEffect, useState } from 'react';
 import { AnimationState, findCel } from '@/lib/models/animation';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface CanvasLayeredProps {
   state: AnimationState;
@@ -43,34 +43,99 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   brushSize = 1,
   onPushHistory,
 }: CanvasLayeredProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const baseCanvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const cel = findCel(state, currentFrameId, activeLayerId);
   const selection = cel?.selection || null;
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [selectStart, setSelectStart] = useState<{ x: number; y: number } | null>(null);
-  const [isOverSelection, setIsOverSelection] = useState(false);
-  const [activeHandle, setActiveHandle] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
-  const [hoveredHandle, setHoveredHandle] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
-  const [localSelection, setLocalSelection] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const [dashOffset, setDashOffset] = useState(0);
+
+  const isDrawingRef = useRef(false);
+  const isSelectingRef = useRef(false);
+  const selectStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isOverSelectionRef = useRef(false);
+  const activeHandleRef = useRef<'nw' | 'ne' | 'sw' | 'se' | null>(null);
+  const hoveredHandleRef = useRef<'nw' | 'ne' | 'sw' | 'se' | null>(null);
+  const localSelectionRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+  const dashOffsetRef = useRef(0);
+  const mousePosRef = useRef<{x: number, y: number} | null>(null);
+
   const onionCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastDrawnPixelRef = useRef<{ x: number, y: number } | null>(null);
 
   useEffect(() => {
-    if (!state.selection) {
-      setDashOffset(0);
-      return;
-    }
     let id: number;
     const loop = () => {
-      setDashOffset(prev => (prev + 0.5) % 8);
+      dashOffsetRef.current = (dashOffsetRef.current + 0.5) % 8;
+      
+      const canvas = overlayCanvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const canvasSize = 600;
+          const cellSize = canvasSize / gridSize;
+          ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+          // Draw selection bounds per layer
+          state.layers.forEach((layer) => {
+            const lCel = state.cels.find(c => c.frameId === currentFrameId && c.layerId === layer.id);
+            if (!lCel || !lCel.selection) return;
+
+            const isActive = layer.id === activeLayerId;
+            const index = state.layers.findIndex(l => l.id === layer.id);
+            const colors = ['#00ffff', '#ffaa00', '#00ff00', '#ff00aa', '#ffff00', '#ff00ff'];
+            const color = colors[index % colors.length];
+
+            ctx.strokeStyle = color;
+            if (isActive) {
+              ctx.setLineDash([4, 4]);
+              ctx.lineDashOffset = dashOffsetRef.current;
+              ctx.lineWidth = 2;
+            } else {
+              ctx.setLineDash([2, 2]);
+              ctx.lineDashOffset = 0;
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = color + '80';
+            }
+
+            ctx.strokeRect(
+              lCel.selection.x * cellSize,
+              lCel.selection.y * cellSize,
+              lCel.selection.w * cellSize,
+              lCel.selection.h * cellSize
+            );
+
+            if (isActive) {
+              const handleSize = 6;
+              ctx.fillStyle = color;
+              ctx.setLineDash([]);
+              ctx.fillRect(lCel.selection.x * cellSize - handleSize/2, lCel.selection.y * cellSize - handleSize/2, handleSize, handleSize);
+              ctx.fillRect((lCel.selection.x + lCel.selection.w) * cellSize - handleSize/2, lCel.selection.y * cellSize - handleSize/2, handleSize, handleSize);
+              ctx.fillRect(lCel.selection.x * cellSize - handleSize/2, (lCel.selection.y + lCel.selection.h) * cellSize - handleSize/2, handleSize, handleSize);
+              ctx.fillRect((lCel.selection.x + lCel.selection.w) * cellSize - handleSize/2, (lCel.selection.y + lCel.selection.h) * cellSize - handleSize/2, handleSize, handleSize);
+            }
+          });
+
+          if (localSelectionRef.current) {
+            ctx.strokeStyle = '#00F0FF';
+            ctx.setLineDash([4, 4]);
+            ctx.lineDashOffset = dashOffsetRef.current;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+              localSelectionRef.current.x * cellSize,
+              localSelectionRef.current.y * cellSize,
+              localSelectionRef.current.w * cellSize,
+              localSelectionRef.current.h * cellSize
+            );
+          }
+          ctx.setLineDash([]);
+          ctx.lineDashOffset = 0;
+        }
+      }
       id = requestAnimationFrame(loop);
     };
     id = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(id);
-  }, [state.selection]);
+  }, [state, currentFrameId, activeLayerId, gridSize]);
 
   const canvasSize = 600;
   const cellSize = canvasSize / gridSize;
@@ -126,7 +191,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
 
   useEffect(() => {
     drawCanvas();
-  }, [state, currentFrameId, gridSize, darkMode, selection, dashOffset, activeLayerId]);
+  }, [state, currentFrameId, gridSize, darkMode, selection, activeLayerId, onionSkin, toyMode, mirrorMode]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -234,7 +299,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   }, [state, currentFrameId, activeLayerId, onUpdateTransform]);
 
   const drawCanvas = () => {
-    const canvas = canvasRef.current;
+    const canvas = baseCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -379,69 +444,12 @@ export const CanvasLayered = React.memo(function CanvasLayered({
       ctx.stroke();
     }
 
-    // Render Selection Bounds per layer
-    state.layers.forEach((layer) => {
-      const cel = findCel(state, currentFrameId, layer.id);
-      if (!cel || !cel.selection) return;
-
-      const isActive = layer.id === activeLayerId;
-      const color = getLayerColor(layer.id);
-
-      ctx.strokeStyle = color;
-      if (isActive) {
-        ctx.setLineDash([4, 4]);
-        ctx.lineDashOffset = dashOffset;
-        ctx.lineWidth = 2;
-      } else {
-        ctx.setLineDash([2, 2]); // Static or small dash
-        ctx.lineDashOffset = 0;
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = color + '80'; // Add transparency
-      }
-
-      ctx.strokeRect(
-        cel.selection.x * cellSize,
-        cel.selection.y * cellSize,
-        cel.selection.w * cellSize,
-        cel.selection.h * cellSize
-      );
-
-      if (isActive) {
-        // Draw handles at corners
-        const handleSize = 6;
-        ctx.fillStyle = color;
-        ctx.setLineDash([]); // No dash for handles
-        
-        // NW
-        ctx.fillRect(cel.selection.x * cellSize - handleSize/2, cel.selection.y * cellSize - handleSize/2, handleSize, handleSize);
-        // NE
-        ctx.fillRect((cel.selection.x + cel.selection.w) * cellSize - handleSize/2, cel.selection.y * cellSize - handleSize/2, handleSize, handleSize);
-        // SW
-        ctx.fillRect(cel.selection.x * cellSize - handleSize/2, (cel.selection.y + cel.selection.h) * cellSize - handleSize/2, handleSize, handleSize);
-        // SE
-        ctx.fillRect((cel.selection.x + cel.selection.w) * cellSize - handleSize/2, (cel.selection.y + cel.selection.h) * cellSize - handleSize/2, handleSize, handleSize);
-      }
-    });
-
-    if (localSelection) {
-      ctx.strokeStyle = '#00F0FF';
-      ctx.setLineDash([4, 4]);
-      ctx.lineDashOffset = dashOffset;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(
-        localSelection.x * cellSize,
-        localSelection.y * cellSize,
-        localSelection.w * cellSize,
-        localSelection.h * cellSize
-      );
-    }
-
     ctx.setLineDash([]); // Reset line dash
     ctx.lineDashOffset = 0;
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>, skipHistory = false) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
+    const rect = baseCanvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
     const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
@@ -485,7 +493,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
     const activeLayer = state.layers.find(l => l.id === activeLayerId);
     if (activeLayer?.isLocked) return;
 
-    const rect = canvasRef.current?.getBoundingClientRect();
+    const rect = baseCanvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
     const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
@@ -507,24 +515,24 @@ export const CanvasLayered = React.memo(function CanvasLayered({
             return Math.abs(mouseX - pt.x) < handleSize && Math.abs(mouseY - pt.y) < handleSize;
           };
 
-          if (isNear(nw)) { setActiveHandle('nw'); return; }
-          if (isNear(ne)) { setActiveHandle('ne'); return; }
-          if (isNear(sw)) { setActiveHandle('sw'); return; }
-          if (isNear(se)) { setActiveHandle('se'); return; }
+          if (isNear(nw)) { activeHandleRef.current = 'nw'; return; }
+          if (isNear(ne)) { activeHandleRef.current = 'ne'; return; }
+          if (isNear(sw)) { activeHandleRef.current = 'sw'; return; }
+          if (isNear(se)) { activeHandleRef.current = 'se'; return; }
         }
 
-        setIsSelecting(true);
-        setSelectStart({ x, y });
+        isSelectingRef.current = true;
+        selectStartRef.current = { x, y };
         onUpdateSelection?.(currentFrameId, activeLayerId, { x, y, w: 1, h: 1 });
       } else {
-        setIsDrawing(true);
+        isDrawingRef.current = true;
         handleCanvasClick(e, true); // Don't push to history on start!
       }
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
+    const rect = baseCanvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
     const x = Math.floor((e.clientX - rect.left) / (rect.width / gridSize));
@@ -544,27 +552,27 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         return Math.abs(mouseX - pt.x) < handleSize && Math.abs(mouseY - pt.y) < handleSize;
       };
 
-      if (isNear(nw)) setHoveredHandle('nw');
-      else if (isNear(ne)) setHoveredHandle('ne');
-      else if (isNear(sw)) setHoveredHandle('sw');
-      else if (isNear(se)) setHoveredHandle('se');
-      else setHoveredHandle(null);
+      if (isNear(nw)) hoveredHandleRef.current = 'nw';
+      else if (isNear(ne)) hoveredHandleRef.current = 'ne';
+      else if (isNear(sw)) hoveredHandleRef.current = 'sw';
+      else if (isNear(se)) hoveredHandleRef.current = 'se';
+      else hoveredHandleRef.current = null;
 
       if (x >= selection.x && x < selection.x + selection.w &&
           y >= selection.y && y < selection.y + selection.h) {
-        setIsOverSelection(true);
+        isOverSelectionRef.current = true;
       } else {
-        setIsOverSelection(false);
+        isOverSelectionRef.current = false;
       }
     } else {
-      setIsOverSelection(false);
-      setHoveredHandle(null);
+      isOverSelectionRef.current = false;
+      hoveredHandleRef.current = null;
     }
 
-    if (activeHandle && selection) {
+    if (activeHandleRef.current && selection) {
       let newSelection = { ...selection };
       
-      switch (activeHandle) {
+      switch (activeHandleRef.current) {
         case 'nw':
           newSelection.w = selection.x + selection.w - x;
           newSelection.h = selection.y + selection.h - y;
@@ -590,23 +598,23 @@ export const CanvasLayered = React.memo(function CanvasLayered({
       if (newSelection.w < 1) newSelection.w = 1;
       if (newSelection.h < 1) newSelection.h = 1;
       
-      setLocalSelection(newSelection);
+      localSelectionRef.current = newSelection;
       return;
     }
 
-    if (isSelecting && selectStart) {
-      const x1 = Math.min(selectStart.x, x);
-      const y1 = Math.min(selectStart.y, y);
-      const x2 = Math.max(selectStart.x, x);
-      const y2 = Math.max(selectStart.y, y);
+    if (isSelectingRef.current && selectStartRef.current) {
+      const x1 = Math.min(selectStartRef.current.x, x);
+      const y1 = Math.min(selectStartRef.current.y, y);
+      const x2 = Math.max(selectStartRef.current.x, x);
+      const y2 = Math.max(selectStartRef.current.y, y);
       
-      setLocalSelection({
+      localSelectionRef.current = {
         x: x1,
         y: y1,
         w: x2 - x1 + 1,
         h: y2 - y1 + 1
-      });
-    } else if (isDrawing) {
+      };
+    } else if (isDrawingRef.current) {
       if (lastDrawnPixelRef.current?.x === x && lastDrawnPixelRef.current?.y === y) {
         return;
       }
@@ -616,22 +624,22 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   };
 
   const handleMouseUp = () => {
-    if (isDrawing) {
+    if (isDrawingRef.current) {
       onPushHistory?.(); // Push the whole stroke to history!
       lastDrawnPixelRef.current = null; // Reset!
     }
-    setIsSelecting(false);
-    setIsDrawing(false);
-    setActiveHandle(null);
-    if (localSelection) {
-      onUpdateSelection?.(currentFrameId, activeLayerId, localSelection);
-      setLocalSelection(null);
+    isSelectingRef.current = false;
+    isDrawingRef.current = false;
+    activeHandleRef.current = null;
+    if (localSelectionRef.current) {
+      onUpdateSelection?.(currentFrameId, activeLayerId, localSelectionRef.current);
+      localSelectionRef.current = null;
     }
   };
 
   // Handle wheel zoom
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = baseCanvasRef.current;
     if (!canvas || !onZoom) return;
     
     const handleWheel = (e: WheelEvent) => {
@@ -647,21 +655,34 @@ export const CanvasLayered = React.memo(function CanvasLayered({
 
   return (
     <div className={`flex-1 min-h-0 flex items-center justify-center overflow-hidden relative ${darkMode ? 'bg-zinc-950' : 'bg-zinc-100'}`}>
+      {/* Base Canvas */}
       <canvas
-        ref={canvasRef}
+        ref={baseCanvasRef}
+        width={canvasSize}
+        height={canvasSize}
+        className="border border-border shadow-2xl max-w-full max-h-full object-contain [image-rendering:pixelated]"
+        style={{ 
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: 'center',
+        }}
+      />
+
+      {/* Overlay Canvas */}
+      <canvas
+        ref={overlayCanvasRef}
         width={canvasSize}
         height={canvasSize}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onMouseMove={handleMouseMove}
-        className="border border-border shadow-2xl max-w-full max-h-full object-contain [image-rendering:pixelated]"
-        style={{ 
+        className="absolute border border-transparent max-w-full max-h-full object-contain [image-rendering:pixelated] z-10"
+        style={{
           cursor: tool === 'selection' ? (
-            hoveredHandle === 'nw' || hoveredHandle === 'se' ? 'nwse-resize' :
-            hoveredHandle === 'ne' || hoveredHandle === 'sw' ? 'nesw-resize' :
-            isOverSelection ? 'move' : 'crosshair'
-          ) : `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="3" fill="white" stroke="black" stroke-width="1"/></svg>') 8 8, auto`,
+            hoveredHandleRef.current === 'nw' || hoveredHandleRef.current === 'se' ? 'nwse-resize' :
+            hoveredHandleRef.current === 'ne' || hoveredHandleRef.current === 'sw' ? 'nesw-resize' :
+            isOverSelectionRef.current ? 'move' : 'crosshair'
+          ) : "url('data:image/svg+xml;utf8,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"%3E%3Ccircle cx=\"8\" cy=\"8\" r=\"3\" fill=\"white\" stroke=\"black\" stroke-width=\"1\"/%3E%3C/svg%3E') 8 8, auto",
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: 'center',
         }}
@@ -669,7 +690,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
       
       {/* Transform Toolbar */}
       {cel && (
-        <div className="absolute top-4 right-4 bg-panel/80 backdrop-blur-sm border border-border px-3 py-2 rounded shadow-lg flex items-center gap-4">
+        <div className="absolute top-4 right-4 bg-panel/80 backdrop-blur-sm border border-border px-3 py-2 rounded shadow-lg flex items-center gap-4 z-20">
           <div className="flex items-center gap-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted">X</span>
             <span className="text-xs font-mono font-bold">{cel.transform?.x || 0}</span>
@@ -699,7 +720,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
       )}
       
       {/* Zoom Indicator */}
-      <div className="absolute bottom-4 right-4 bg-panel/80 backdrop-blur-sm border border-border px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-foreground shadow-lg pointer-events-none">
+      <div className="absolute bottom-4 right-4 bg-panel/80 backdrop-blur-sm border border-border px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-foreground shadow-lg pointer-events-none z-20">
         {Math.round(zoom * 100)}%
       </div>
     </div>

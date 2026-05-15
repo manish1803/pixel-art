@@ -1,6 +1,6 @@
 import { connectToDatabase } from '@/lib/mongodb';
-import { Project, IProject } from '@/models/Project';
-import type { UpdateProjectInput, CreateProjectInput } from '@/lib/validations/project';
+import type { CreateProjectInput, UpdateProjectInput } from '@/lib/validations/project';
+import { IProject, Project } from '@/models/Project';
 
 // Serialize a Mongoose document to a plain JS object with `id` string
 function serialize(doc: IProject) {

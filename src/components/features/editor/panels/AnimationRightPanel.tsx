@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { PanelContainer, PanelSection } from '@/components/shared/PanelBase';
 import { CustomNumberInput } from '@/components/ui/CustomNumberInput';
+import { ChevronRight } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { MiniMap } from './MiniMap';
 
 interface Frame {

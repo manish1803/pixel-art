@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
 import { auth } from '@/lib/auth/auth';
-import { getProjectsByUser, createProject } from '@/services/project.service';
 import { CreateProjectSchema } from '@/lib/validations/project';
+import { createProject, getProjectsByUser } from '@/services/project.service';
+import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
+export const dynamic = 'force-dynamic';
 
 function unauthorized() {
   return NextResponse.json(

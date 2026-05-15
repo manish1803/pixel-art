@@ -1,9 +1,9 @@
 "use client";
-import React, { useRef } from "react";
-import Link from "next/link";
+import { IconCloud, IconFocus2, IconStack2 } from "@tabler/icons-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useSession } from "next-auth/react";
-import { IconCloud, IconStack2, IconFocus2 } from "@tabler/icons-react";
+import Link from "next/link";
+import { useRef } from "react";
 
 export function HeroSection() {
   const { data: session } = useSession();

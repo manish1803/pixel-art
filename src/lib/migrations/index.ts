@@ -1,5 +1,5 @@
-import { migrateV1ToV2 } from './v1-to-v2';
 import { CURRENT_SCHEMA_VERSION } from '@/lib/project-schema/constants';
+import { migrateV1ToV2 } from './v1-to-v2';
 
 const migrations: { [key: number]: (project: any) => any } = {
   1: migrateV1ToV2,

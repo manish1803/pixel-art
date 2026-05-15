@@ -1,33 +1,36 @@
 'use client';
 
 // React & Next.js
-import { useState, useCallback, useEffect, useMemo, Suspense, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // Third-party
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Components
-import { TopNavigation } from '@/components/shared/layout/TopNavigation';
-import { RightSidebar } from '@/components/features/editor/panels/RightSidebar';
-import { CanvasLayered } from '@/components/features/canvas/CanvasLayered';
-import { FramesGrid } from '@/components/features/editor/panels/TimelineGrid';
-import { LayersPanel } from '@/components/features/editor/panels/LayersPanel';
-import { CommandPalette, Command } from '@/components/features/editor/CommandPalette';
-import { ShortcutsReference } from '@/components/features/editor/ShortcutsReference';
-import { DeleteFrameModal } from '@/components/ui/DeleteFrameModal';
 import Loading from '@/app/loading';
+import { CanvasLayered } from '@/components/features/canvas/CanvasLayered';
+import { Command, CommandPalette } from '@/components/features/editor/CommandPalette';
 import { ExportModal } from '@/components/features/editor/modals/ExportModal';
+import { LayersPanel } from '@/components/features/editor/panels/LayersPanel';
+import { RightSidebar } from '@/components/features/editor/panels/RightSidebar';
+import { FramesGrid } from '@/components/features/editor/panels/TimelineGrid';
+import { ShortcutsReference } from '@/components/features/editor/ShortcutsReference';
+import { TopNavigation } from '@/components/shared/layout/TopNavigation';
+import { DeleteFrameModal } from '@/components/ui/DeleteFrameModal';
 
 // Hooks
 import { useAnimationStore } from '@/hooks/useAnimationStore';
+import { useEditorStore } from '@/hooks/useEditorStore';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 
+import { get, set } from 'idb-keyval';
+
 // Lib & Utils
-import { loadProject } from '@/lib/project-loader';
 import { findCel } from '@/lib/models/animation';
-import { generatePNG, generateSVG } from '@/lib/utils/export';
+import { loadProject } from '@/lib/project-loader';
+import { generatePNG } from '@/lib/utils/export';
 
 function EditorContent() {
   const router = useRouter();
@@ -39,12 +42,30 @@ function EditorContent() {
 
   const { state: animationState, updatePixels: updateAnimationPixels, pushHistory, addLayer, addFrame, deleteFrame, updateTransform, unlinkCel, clearCel, undo: undoLayered, redo: redoLayered, updateSelection, resetState, updateThumbnail, toggleLayerVisibility, toggleLayerLock, renameLayer, deleteLayer, duplicateLayer, reorderLayers, updateLayerOpacity, updateLayerBlendMode, mergeLayerDown } = useAnimationStore();
   
+  const {
+    tool, setTool,
+    color, setColor,
+    brushSize, setBrushSize,
+    mirrorMode, setMirrorMode,
+    recentColors, setRecentColors,
+    activePalette, setActivePalette,
+    gridSize, setGridSize,
+    toyMode, setToyMode,
+    zoom, setZoom,
+    pan, setPan,
+    onionSkin, setOnionSkin,
+    isPlaying, setIsPlaying,
+    fps, setFps,
+    selectedFrameId, setSelectedFrameId,
+    selectedLayerId, setSelectedLayerId,
+    isTimelineExpanded, setIsTimelineExpanded
+  } = useEditorStore();
+
   const handleUpdatePixels = useCallback((frameId: string, layerId: string, pixels: { [key: string]: string }) => {
     isDirtyRef.current = true;
     updateAnimationPixels(frameId, layerId, pixels);
   }, [updateAnimationPixels]);
-  const [selectedFrameId, setSelectedFrameId] = useState('frame-1');
-  const [selectedLayerId, setSelectedLayerId] = useState('layer-1');
+
   const [frameToDelete, setFrameToDelete] = useState<{ id: string, index: number } | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'png' | 'gif' | 'svg'>('png');
@@ -111,25 +132,11 @@ function EditorContent() {
     }));
   }, [animationState, getCompositedPixels]);
 
-  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
-  const [tool, setTool] = useState<'fill' | 'erase' | 'picker' | 'selection'>('fill');
-  const [color, setColor] = useState('#ff0000');
-  const [brushSize, setBrushSize] = useState(1);
-  const [mirrorMode, setMirrorMode] = useState<'none' | 'vertical' | 'horizontal' | 'both'>('none');
-  const [gridSize, setGridSize] = useState(32);
-  const [toyMode, setToyMode] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
-  const [recentColors, setRecentColors] = useState<string[]>([]);
-  const [activePalette, setActivePalette] = useState<string[]>([]);
-
-
-  const [fps, setFps] = useState(12);
-  const [onionSkin, setOnionSkin] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [showMobileWarning, setShowMobileWarning] = useState(false);
@@ -150,10 +157,6 @@ function EditorContent() {
   // Timeline resizing state
   const [timelineHeight, setTimelineHeight] = useState(220);
   const [isDraggingTimeline, setIsDraggingTimeline] = useState(false);
-
-  // Zoom & Pan State (Lifted for Mini-map)
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
 
   const handleExportPNG = useCallback(() => {
     setExportFormat('png');
@@ -319,11 +322,11 @@ function EditorContent() {
     // Handled automatically by the effect above
   }, []);
 
-  const syncToLocalStorage = useCallback((updater: (prev: any[]) => any[]) => {
-    const saved = localStorage.getItem('pixel-art-projects');
-    const all = saved ? JSON.parse(saved) : [];
+  const syncToLocalStorage = useCallback(async (updater: (prev: any[]) => any[]) => {
+    const saved = await get('pixel-art-projects');
+    const all = saved ? saved : [];
     const updated = updater(all);
-    localStorage.setItem('pixel-art-projects', JSON.stringify(updated));
+    await set('pixel-art-projects', updated);
   }, []);
 
 
@@ -373,8 +376,8 @@ function EditorContent() {
         }
       }
     } else {
-      // ── Guest save (localStorage) ─────────────────────────────────
-      syncToLocalStorage((prev) => {
+      // ── Guest save (IndexedDB) ─────────────────────────────────
+      await syncToLocalStorage((prev) => {
         if (currentProjectId && !currentProjectId.startsWith('template_') && !currentProjectId.startsWith('import_')) {
           return prev.map((p) => (p.id === currentProjectId ? { ...p, ...projectData } : p));
         } else {
@@ -720,9 +723,6 @@ function EditorContent() {
         <div className="shrink-0 h-full z-10 w-80 border-r border-border bg-background flex flex-col gap-4 p-4 overflow-y-auto">
           <LayersPanel
             state={animationState}
-            selectedFrame={selectedFrameId}
-            selectedLayer={selectedLayerId}
-            setSelectedLayer={setSelectedLayerId}
             addLayer={addLayer}
             unlinkCel={unlinkCel}
             toggleLayerVisibility={toggleLayerVisibility}
@@ -735,7 +735,6 @@ function EditorContent() {
             updateLayerOpacity={updateLayerOpacity}
             updateLayerBlendMode={updateLayerBlendMode}
             mergeLayerDown={mergeLayerDown}
-            gridSize={gridSize}
           />
         </div>
 
@@ -792,18 +791,11 @@ function EditorContent() {
           >
             <FramesGrid
               state={animationState}
-              selectedFrame={selectedFrameId}
-              setSelectedFrame={setSelectedFrameId}
-              selectedLayer={selectedLayerId}
-              setSelectedLayer={setSelectedLayerId}
               addLayer={addLayer}
               addFrame={handleAddFrameLayered}
               onDeleteFrame={handleDeleteFrameRequest}
               unlinkCel={unlinkCel}
-              isPlaying={isPlaying}
-              setIsPlaying={setIsPlaying}
               updateThumbnail={updateThumbnail}
-              gridSize={gridSize}
               darkMode={darkMode}
             />
           </div>
@@ -873,33 +865,11 @@ function EditorContent() {
         <div className="shrink-0 h-full z-10">
           <RightSidebar
             state={animationState}
-            tool={tool}
-            setTool={setTool}
-            color={color}
-            setColor={setColor}
-            brushSize={brushSize}
-            setBrushSize={setBrushSize}
-            mirrorMode={mirrorMode}
-            setMirrorMode={setMirrorMode}
-            recentColors={recentColors}
-            activePalette={activePalette}
-            addRecentColor={addRecentColor}
             frames={computedFrames}
-            gridSize={gridSize}
-            setGridSize={setGridSize}
             currentFrame={currentFrame}
-            onionSkin={onionSkin}
-            setOnionSkin={setOnionSkin}
-            selectedLayerId={selectedLayerId}
             updateLayerOpacity={updateLayerOpacity}
             updateLayerBlendMode={updateLayerBlendMode}
             darkMode={darkMode}
-            zoom={zoom}
-            setZoom={setZoom}
-            pan={pan}
-            setPan={setPan}
-            isPlaying={isPlaying}
-            fps={fps}
           />
         </div>
       </div>
@@ -926,7 +896,6 @@ function EditorContent() {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         state={animationState}
-        gridSize={gridSize}
         projectName={projectName}
         initialFormat={exportFormat}
       />

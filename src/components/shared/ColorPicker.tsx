@@ -1,9 +1,9 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
-import { Pipette, ChevronRight } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@radix-ui/react-collapsible';
-import { hexToHsv, hsvToHex, hexToRgb, rgbToHex } from '@/lib/utils/color';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { hexToHsv, hexToRgb, hsvToHex, rgbToHex } from '@/lib/utils/color';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@radix-ui/react-collapsible';
+import { ChevronRight, Pipette } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface ColorPickerProps {
   color: string;

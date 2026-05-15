@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { Template } from '@/lib/data/defaultTemplates';
 import { Grid } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface TemplatesViewProps {
   onSelectTemplate: (template: Template) => void;

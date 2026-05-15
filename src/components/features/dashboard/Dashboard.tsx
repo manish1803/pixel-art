@@ -1,19 +1,19 @@
 'use client';
-import React from 'react';
-import { Plus, FolderPlus, ArrowLeft, Layers, Search, Clock } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { ProjectCard } from './ProjectCard';
-import { FolderCard } from './FolderCard';
-import { Sidebar } from './Sidebar';
-import { ImportImageModal } from './ImportImageModal';
 import { UserMenu } from '@/components/shared/layout/UserMenu';
-import { CreateFolderModal } from '@/components/ui/CreateFolderModal';
 import { Logo } from '@/components/shared/Logo';
-import { TemplatesView } from './TemplatesView';
+import { CreateFolderModal } from '@/components/ui/CreateFolderModal';
+import { ArrowLeft, Clock, FolderPlus, Plus, Search } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+import { FolderCard } from './FolderCard';
+import { ImportImageModal } from './ImportImageModal';
+import { ProjectCard } from './ProjectCard';
 import { ProjectsView } from './ProjectsView';
-import { TrashView } from './TrashView';
 import { SettingsView } from './SettingsView';
+import { Sidebar } from './Sidebar';
+import { TemplatesView } from './TemplatesView';
+import { TrashView } from './TrashView';
 
 export interface Project {
   id: string;

@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
-import { pixelateImage, reduceColors, convertImageDataToProjectPixels, applyDithering, convertImageDataToLayersByColor, mapToPalette } from '@/lib/image-processor';
+import { applyDithering, convertImageDataToLayersByColor, convertImageDataToProjectPixels, mapToPalette, pixelateImage, reduceColors } from '@/lib/image-processor';
+import { Image as ImageIcon, Upload, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
 
 const PALETTES: { [key: string]: string[] } = {
   gameboy: ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'],

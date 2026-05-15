@@ -1,6 +1,6 @@
 'use client';
-import React, { useState } from 'react';
-import { Folder as FolderIcon, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { Edit2, Folder as FolderIcon, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface Folder {
   id: string;
