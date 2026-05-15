@@ -1,27 +1,33 @@
 'use client';
 
+// React & Next.js
 import { useState, useCallback, useEffect, useMemo, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+
+// Third-party
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Components
 import { TopNavigation } from '@/components/shared/layout/TopNavigation';
-import { ToolsPanel } from '@/components/features/editor/panels/ToolsPanel';
-import { CanvasArea } from '@/components/features/canvas/CanvasArea';
 import { RightSidebar } from '@/components/features/editor/panels/RightSidebar';
-import { AnimationTimeline } from '@/components/features/editor/panels/AnimationTimeline';
-import { generatePNG, generateSVG } from '@/lib/utils/export';
-import { usePixelHistory } from '@/hooks/usePixelHistory';
-import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
-import { CommandPalette, Command } from '@/components/features/editor/CommandPalette';
-import { ShortcutsReference } from '@/components/features/editor/ShortcutsReference';
-import { useAnimationStore } from '@/hooks/useAnimationStore';
 import { CanvasLayered } from '@/components/features/canvas/CanvasLayered';
 import { FramesGrid } from '@/components/features/editor/panels/TimelineGrid';
 import { LayersPanel } from '@/components/features/editor/panels/LayersPanel';
-import Loading from '@/app/loading';
+import { CommandPalette, Command } from '@/components/features/editor/CommandPalette';
+import { ShortcutsReference } from '@/components/features/editor/ShortcutsReference';
 import { DeleteFrameModal } from '@/components/ui/DeleteFrameModal';
+import Loading from '@/app/loading';
+import { ExportModal } from '@/components/features/editor/modals/ExportModal';
+
+// Hooks
+import { useAnimationStore } from '@/hooks/useAnimationStore';
+import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
+
+// Lib & Utils
 import { loadProject } from '@/lib/project-loader';
 import { findCel } from '@/lib/models/animation';
+import { generatePNG, generateSVG } from '@/lib/utils/export';
 
 function EditorContent() {
   const router = useRouter();
@@ -40,6 +46,8 @@ function EditorContent() {
   const [selectedFrameId, setSelectedFrameId] = useState('frame-1');
   const [selectedLayerId, setSelectedLayerId] = useState('layer-1');
   const [frameToDelete, setFrameToDelete] = useState<{ id: string, index: number } | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'png' | 'gif' | 'svg'>('png');
 
   const getCompositedPixels = useCallback((frameId: string) => {
     const pixels: { [key: string]: string } = {};
@@ -147,26 +155,21 @@ function EditorContent() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
-  const handleExportPNG = useCallback(async () => {
-    const pixels = getCompositedPixels(selectedFrameId);
-    const dataUrl = await generatePNG(pixels, gridSize, 600, darkMode ? '#000000' : '#ffffff');
-    const link = document.createElement('a');
-    link.download = `${projectName || 'pixel-art'}.png`;
-    link.href = dataUrl;
-    link.click();
-  }, [getCompositedPixels, selectedFrameId, gridSize, darkMode, projectName]);
+  const handleExportPNG = useCallback(() => {
+    setExportFormat('png');
+    setIsExportModalOpen(true);
+  }, []);
 
   const handleExportSVG = useCallback(() => {
-    const pixels = getCompositedPixels(selectedFrameId);
-    const svgContent = generateSVG(pixels, gridSize, 600);
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = `${projectName || 'pixel-art'}.svg`;
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [getCompositedPixels, selectedFrameId, gridSize, projectName]);
+    setExportFormat('svg');
+    setIsExportModalOpen(true);
+  }, []);
+
+  const handleExportGIF = useCallback(() => {
+    setExportFormat('gif');
+    setIsExportModalOpen(true);
+  }, []);
+
 
   const startTimelineDrag = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -845,17 +848,12 @@ function EditorContent() {
               >
                 Clear
               </button>
-              <div className="relative group">
-                <button
-                  className="px-4 py-2 border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-panel transition-colors flex items-center gap-1"
-                >
-                  Export <span>▼</span>
-                </button>
-                <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block bg-panel border border-border shadow-lg z-30">
-                  <button onClick={handleExportPNG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover-accent">PNG</button>
-                  <button onClick={handleExportSVG} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover-accent">SVG</button>
-                </div>
-              </div>
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="px-4 py-2 border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-panel transition-colors"
+              >
+                Export
+              </button>
               <div className="relative group">
                 <button
                   className="px-4 py-2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest hover:bg-foreground/90 transition-colors flex items-center gap-1"
@@ -896,8 +894,6 @@ function EditorContent() {
             updateLayerOpacity={updateLayerOpacity}
             updateLayerBlendMode={updateLayerBlendMode}
             darkMode={darkMode}
-            onExportPNG={handleExportPNG}
-            onExportSVG={handleExportSVG}
             zoom={zoom}
             setZoom={setZoom}
             pan={pan}
@@ -925,6 +921,14 @@ function EditorContent() {
           }
         }}
         frameIndex={frameToDelete?.index || 0}
+      />
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        state={animationState}
+        gridSize={gridSize}
+        projectName={projectName}
+        initialFormat={exportFormat}
       />
     </div>
   );

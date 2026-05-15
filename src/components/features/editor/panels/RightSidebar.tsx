@@ -37,8 +37,7 @@ interface RightSidebarProps {
   onionSkin: boolean;
   setOnionSkin: (value: boolean) => void;
   darkMode: boolean;
-  onExportPNG: () => void;
-  onExportSVG: () => void;
+
   zoom: number;
   setZoom: (zoom: number | ((prev: number) => number)) => void;
   pan: { x: number; y: number };
@@ -71,8 +70,7 @@ export function RightSidebar({
   onionSkin,
   setOnionSkin,
   darkMode,
-  onExportPNG,
-  onExportSVG,
+
   zoom,
   setZoom,
   pan,
@@ -439,23 +437,7 @@ export function RightSidebar({
               </div>
             </PanelSection>
 
-            {/* 5. EXPORT */}
-            <PanelSection title="Export">
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={onExportPNG}
-                  className="w-full py-2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest hover:bg-foreground/90 transition-colors"
-                >
-                  Export PNG
-                </button>
-                <button
-                  onClick={onExportSVG}
-                  className="w-full py-2 border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-panel transition-colors"
-                >
-                  Export SVG
-                </button>
-              </div>
-            </PanelSection>
+
           </>
         )}
       </div>
