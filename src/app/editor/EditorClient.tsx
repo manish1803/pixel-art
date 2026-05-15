@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +18,7 @@ import { useAnimationStore } from '@/hooks/useAnimationStore';
 import { CanvasLayered } from '@/components/features/canvas/CanvasLayered';
 import { FramesGrid } from '@/components/features/editor/panels/TimelineGrid';
 import { LayersPanel } from '@/components/features/editor/panels/LayersPanel';
+import Loading from '@/app/loading';
 import { DeleteFrameModal } from '@/components/ui/DeleteFrameModal';
 import { loadProject } from '@/lib/project-loader';
 import { findCel } from '@/lib/models/animation';
@@ -28,8 +29,14 @@ function EditorContent() {
   const projectId = searchParams.get('id');
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user?.id;
+  const isDirtyRef = useRef(false);
 
   const { state: animationState, updatePixels: updateAnimationPixels, pushHistory, addLayer, addFrame, deleteFrame, updateTransform, unlinkCel, clearCel, undo: undoLayered, redo: redoLayered, updateSelection, resetState, updateThumbnail, toggleLayerVisibility, toggleLayerLock, renameLayer, deleteLayer, duplicateLayer, reorderLayers, updateLayerOpacity, updateLayerBlendMode, mergeLayerDown } = useAnimationStore();
+  
+  const handleUpdatePixels = useCallback((frameId: string, layerId: string, pixels: { [key: string]: string }) => {
+    isDirtyRef.current = true;
+    updateAnimationPixels(frameId, layerId, pixels);
+  }, [updateAnimationPixels]);
   const [selectedFrameId, setSelectedFrameId] = useState('frame-1');
   const [selectedLayerId, setSelectedLayerId] = useState('layer-1');
   const [frameToDelete, setFrameToDelete] = useState<{ id: string, index: number } | null>(null);
@@ -111,7 +118,6 @@ function EditorContent() {
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [activePalette, setActivePalette] = useState<string[]>([]);
 
-  const { frames, setFrames, setFramesWithoutHistory, undo, redo, clearHistory } = usePixelHistory([{ id: 1, pixels: {} }]);
 
   const [fps, setFps] = useState(12);
   const [onionSkin, setOnionSkin] = useState(false);
@@ -212,16 +218,31 @@ function EditorContent() {
         if (project.animationState) {
           resetState(project.animationState);
         } else if (project.frames?.length) {
-          setFramesWithoutHistory(project.frames);
+          resetState({
+            frames: project.frames.map((f: any) => ({ id: f.id.toString() })),
+            layers: [{ id: 'layer-1', name: 'Layer 1', isVisible: true, isLocked: false }],
+            cels: project.frames.map((f: any) => ({ frameId: f.id.toString(), layerId: 'layer-1', dataId: `data-${f.id}-layer-1` })),
+            celData: project.frames.reduce((acc: any, f: any) => {
+              acc[`data-${f.id}-layer-1`] = { id: `data-${f.id}-layer-1`, pixels: f.pixels || {} };
+              return acc;
+            }, {}),
+          });
         } else if (project.pixels) {
-          setFramesWithoutHistory([{ id: 1, pixels: project.pixels }]);
+          resetState({
+            frames: [{ id: 'frame-1' }],
+            layers: [{ id: 'layer-1', name: 'Layer 1', isVisible: true, isLocked: false }],
+            cels: [{ frameId: 'frame-1', layerId: 'layer-1', dataId: 'data-frame-1-layer-1' }],
+            celData: {
+              'data-frame-1-layer-1': { id: 'data-frame-1-layer-1', pixels: project.pixels }
+            },
+          });
         }
         sessionStorage.removeItem('open-project');
       }
     } catch (e) {
       console.error('Failed to parse project from sessionStorage', e);
     }
-  }, [projectId, setFramesWithoutHistory]);
+  }, [projectId, resetState]);
 
   // Fetch project from API if missing from sessionStorage (e.g. on refresh)
   useEffect(() => {
@@ -267,7 +288,7 @@ function EditorContent() {
     };
 
     fetchProject();
-  }, [projectId, currentProjectId, isAuthenticated, setFramesWithoutHistory]);
+  }, [projectId, currentProjectId, isAuthenticated, resetState]);
 
   const getUsedColors = useCallback(() => {
     const colors = new Set<string>();
@@ -302,43 +323,14 @@ function EditorContent() {
     localStorage.setItem('pixel-art-projects', JSON.stringify(updated));
   }, []);
 
-  const handleNewProject = useCallback(() => {
-    clearHistory();
-    setFrames([{ id: 1, pixels: {} }]);
-    setCurrentFrame(0);
-    setProjectName('');
-    setCurrentProjectId(null);
-  }, [clearHistory]);
 
-  const handleAddFrame = useCallback(() => {
-    setFrames([...frames, { id: Date.now(), pixels: {} }]);
-  }, [frames, setFrames]);
 
   const handleAddFrameLayered = useCallback((id: string, copyFromId?: string) => {
     addFrame(id, copyFromId);
     setSelectedFrameId(id);
   }, [addFrame, setSelectedFrameId]);
 
-  const handleDuplicateFrame = useCallback((index: number) => {
-    const newFrames = [...frames];
-    const frameToCopy = frames[index];
-    const duplicatedFrame = {
-      id: Date.now(),
-      pixels: { ...frameToCopy.pixels }
-    };
-    newFrames.splice(index + 1, 0, duplicatedFrame);
-    setFrames(newFrames);
-    setCurrentFrame(index + 1);
-  }, [frames, setFrames]);
 
-  const handleDeleteFrame = useCallback((index: number) => {
-    if (frames.length <= 1) return;
-    const newFrames = frames.filter((_, i) => i !== index);
-    setFrames(newFrames);
-    if (currentFrame >= index && currentFrame > 0) {
-      setCurrentFrame(currentFrame - 1);
-    }
-  }, [frames, currentFrame, setFrames]);
 
   const handleSaveProject = useCallback(async (preview: string, metadata: Partial<any> = {}) => {
     // If we're updating an existing project, we should preserve its current metadata
@@ -348,7 +340,7 @@ function EditorContent() {
       date: new Date().toLocaleDateString(),
       preview,
       gridSize,
-      frames, // Legacy fallback
+      frames: animationState.frames, // Legacy fallback
       animationState, // New layered state
       palette: activePalette, // Save active palette!
       isFavourite: false,
@@ -390,7 +382,7 @@ function EditorContent() {
         }
       });
     }
-  }, [isAuthenticated, projectName, gridSize, frames, animationState, currentProjectId, syncToLocalStorage, isOffline]);
+  }, [isAuthenticated, projectName, gridSize, animationState, currentProjectId, syncToLocalStorage, isOffline]);
 
   const performSave = useCallback(async (metadata: Partial<any> = {}) => {
     setSaveStatus('saving');
@@ -467,13 +459,19 @@ function EditorContent() {
     };
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      performSave({ isDraft: true });
+      if (isDirtyRef.current) {
+        performSave({ isDraft: true });
+        isDirtyRef.current = false;
+      }
       e.preventDefault();
       e.returnValue = '';
     };
 
     const interval = setInterval(() => {
-      performSave({ isDraft: true });
+      if (isDirtyRef.current) {
+        performSave({ isDraft: true });
+        isDirtyRef.current = false;
+      }
     }, 30000); // Every 30 seconds
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
@@ -552,8 +550,8 @@ function EditorContent() {
         clearedPixels[`${x},${y}`] = ''; // Empty string for transparent
       }
     }
-    updateAnimationPixels(selectedFrameId, selectedLayerId, clearedPixels);
-  }, [handleCopy, selectedFrameId, selectedLayerId, updateAnimationPixels, animationState]);
+    handleUpdatePixels(selectedFrameId, selectedLayerId, clearedPixels);
+  }, [handleCopy, selectedFrameId, selectedLayerId, handleUpdatePixels, animationState]);
 
   const handlePaste = useCallback(() => {
     if (!clipboard) return;
@@ -569,8 +567,8 @@ function EditorContent() {
       const newKey = `${px + x},${py + y}`;
       pastedPixels[newKey] = color;
     });
-    updateAnimationPixels(selectedFrameId, selectedLayerId, pastedPixels);
-  }, [clipboard, animationState, selectedFrameId, selectedLayerId, updateAnimationPixels]);
+    handleUpdatePixels(selectedFrameId, selectedLayerId, pastedPixels);
+  }, [clipboard, animationState, selectedFrameId, selectedLayerId, handleUpdatePixels]);
 
   useGlobalShortcuts({
     onUndo: undoLayered,
@@ -652,14 +650,7 @@ function EditorContent() {
   });
 
   if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background text-foreground">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <span className="text-sm text-muted">Loading Project...</span>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (
@@ -752,7 +743,7 @@ function EditorContent() {
               state={animationState}
               currentFrameId={selectedFrameId}
               activeLayerId={selectedLayerId}
-              onUpdatePixels={updateAnimationPixels}
+              onUpdatePixels={handleUpdatePixels}
               onUpdateTransform={updateTransform}
               onUpdateSelection={updateSelection}
               gridSize={gridSize}

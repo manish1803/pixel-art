@@ -48,7 +48,7 @@ export function SavedFilesPanel({ darkMode, savedProjects, onLoadProject, onDele
               <div 
                 key={project.id} 
                 onClick={() => onLoadProject(project)}
-                className="border p-3 flex gap-4 transition-colors hover:bg-accent group" 
+                className="border p-3 flex gap-4 transition-colors hover:bg-accent/10 group" 
                 style={{ borderColor, cursor: 'pointer' }}
               >
                 <div className="w-16 h-16 border shrink-0 bg-white" style={{ borderColor }}>

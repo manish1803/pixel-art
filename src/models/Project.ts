@@ -2,13 +2,13 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 // ----- Frame sub-document -----
 interface IFrame {
-  id: number;
+  id: number | string;
   pixels: Map<string, string>;
 }
 
 const FrameSchema = new Schema<IFrame>(
   {
-    id: { type: Number, required: true },
+    id: { type: Schema.Types.Mixed, required: true },
     pixels: { type: Map, of: String, default: {} },
   },
   { _id: false }
@@ -55,6 +55,7 @@ const ProjectSchema = new Schema<IProject>(
 // Index for fast per-user queries and folder lookups
 ProjectSchema.index({ userId: 1, folderId: 1, createdAt: -1 });
 
-// Prevent model re-compilation during Next.js HMR
-export const Project: Model<IProject> =
-  mongoose.models.Project ?? mongoose.model<IProject>('Project', ProjectSchema);
+if (mongoose.models.Project) {
+  delete (mongoose.models as any).Project;
+}
+export const Project: Model<IProject> = mongoose.model<IProject>('Project', ProjectSchema);

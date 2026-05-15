@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // ----- Frame -----
 export const FrameSchema = z.object({
-  id: z.number(),
+  id: z.union([z.number(), z.string()]),
   pixels: z.record(z.string(), z.string()).default({}),
 });
 

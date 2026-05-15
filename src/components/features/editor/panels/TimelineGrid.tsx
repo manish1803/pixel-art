@@ -168,7 +168,7 @@ export function FramesGrid({
                   className="p-1 bg-panel border border-border rounded hover-accent"
                   title="Duplicate"
                 >
-                  <Copy className="w-3 h-3" />
+                  <Copy className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={(e) => {
@@ -178,7 +178,7 @@ export function FramesGrid({
                   className="p-1 bg-panel border border-border rounded hover:bg-red-600 hover:text-white transition-colors text-red-500"
                   title="Delete"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
 

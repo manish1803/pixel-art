@@ -55,8 +55,14 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   const [hoveredHandle, setHoveredHandle] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
   const [localSelection, setLocalSelection] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [dashOffset, setDashOffset] = useState(0);
+  const onionCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastDrawnPixelRef = useRef<{ x: number, y: number } | null>(null);
 
   useEffect(() => {
+    if (!state.selection) {
+      setDashOffset(0);
+      return;
+    }
     let id: number;
     const loop = () => {
       setDashOffset(prev => (prev + 0.5) % 8);
@@ -64,7 +70,51 @@ export const CanvasLayered = React.memo(function CanvasLayered({
     };
     id = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(id);
-  }, []);
+  }, [state.selection]);
+
+  const canvasSize = 600;
+  const cellSize = canvasSize / gridSize;
+  const canvasBg = darkMode ? '#000' : '#fff';
+
+  useEffect(() => {
+    if (!onionSkin) return;
+    if (!onionCanvasRef.current) {
+      onionCanvasRef.current = document.createElement('canvas');
+      onionCanvasRef.current.width = canvasSize;
+      onionCanvasRef.current.height = canvasSize;
+    }
+    const oCtx = onionCanvasRef.current.getContext('2d');
+    if (!oCtx) return;
+    
+    oCtx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    const currentFrameIndex = state.frames.findIndex((f) => f.id === currentFrameId);
+    
+    const drawFrameToOnion = (frameId: string, alpha: number) => {
+      oCtx.globalAlpha = alpha;
+      state.layers.forEach((layer) => {
+        if (!layer.isVisible) return;
+        const cel = findCel(state, frameId, layer.id);
+        if (!cel) return;
+        const celData = state.celData[cel.dataId];
+        if (!celData) return;
+        
+        Object.entries(celData.pixels).forEach(([key, color]) => {
+          if (!color) return;
+          const [x, y] = key.split(',').map(Number);
+          oCtx.fillStyle = color;
+          oCtx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        });
+      });
+    };
+    
+    if (currentFrameIndex > 0) {
+      drawFrameToOnion(state.frames[currentFrameIndex - 1].id, 0.3);
+    }
+    if (currentFrameIndex < state.frames.length - 1) {
+      drawFrameToOnion(state.frames[currentFrameIndex + 1].id, 0.15);
+    }
+  }, [onionSkin, currentFrameId, state.frames, state.layers, state.celData, canvasSize, cellSize]);
 
   const getLayerColor = (layerId: string) => {
     const index = state.layers.findIndex(l => l.id === layerId);
@@ -72,9 +122,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
     return colors[index % colors.length];
   };
 
-  const canvasSize = 600;
-  const cellSize = canvasSize / gridSize;
-  const canvasBg = darkMode ? '#000' : '#fff';
+
 
   useEffect(() => {
     drawCanvas();
@@ -305,14 +353,8 @@ export const CanvasLayered = React.memo(function CanvasLayered({
       });
     };
 
-    if (onionSkin) {
-      const currentFrameIndex = state.frames.findIndex((f) => f.id === currentFrameId);
-      if (currentFrameIndex > 0) {
-        drawFrame(state.frames[currentFrameIndex - 1].id, 0.3);
-      }
-      if (currentFrameIndex < state.frames.length - 1) {
-        drawFrame(state.frames[currentFrameIndex + 1].id, 0.15);
-      }
+    if (onionSkin && onionCanvasRef.current) {
+      ctx.drawImage(onionCanvasRef.current, 0, 0);
     }
 
     // Draw active frame
@@ -565,6 +607,10 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         h: y2 - y1 + 1
       });
     } else if (isDrawing) {
+      if (lastDrawnPixelRef.current?.x === x && lastDrawnPixelRef.current?.y === y) {
+        return;
+      }
+      lastDrawnPixelRef.current = { x, y };
       handleCanvasClick(e, true); // Skip history on move!
     }
   };
@@ -572,6 +618,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   const handleMouseUp = () => {
     if (isDrawing) {
       onPushHistory?.(); // Push the whole stroke to history!
+      lastDrawnPixelRef.current = null; // Reset!
     }
     setIsSelecting(false);
     setIsDrawing(false);
