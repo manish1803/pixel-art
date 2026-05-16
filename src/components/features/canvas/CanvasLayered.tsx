@@ -18,6 +18,7 @@ interface CanvasLayeredProps {
   mirrorMode?: 'none' | 'vertical' | 'horizontal' | 'both';
   onionSkin?: boolean;
   onZoom?: (zoom: number | ((prev: number) => number)) => void;
+  onPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   onUpdateSelection?: (frameId: string, layerId: string, selection: { x: number; y: number; w: number; h: number } | null) => void;
   toyMode?: boolean;
   brushSize?: number;
@@ -36,6 +37,7 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   zoom,
   pan,
   onZoom,
+  onPan,
   color,
   tool,
   mirrorMode = 'none',
@@ -58,6 +60,43 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   const localSelectionRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const dashOffsetRef = useRef(0);
   const mousePosRef = useRef<{x: number, y: number} | null>(null);
+
+  const isPanningRef = useRef(false);
+  const isSpacePressedRef = useRef(false);
+  const panStartRef = useRef<{ clientX: number; clientY: number; panX: number; panY: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const currentZoomRef = useRef(zoom);
+  const currentPanRef = useRef(pan);
+  
+  useEffect(() => {
+    currentZoomRef.current = zoom;
+    currentPanRef.current = pan;
+  }, [zoom, pan]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat && document.activeElement?.tagName !== 'INPUT') {
+        isSpacePressedRef.current = true;
+        const canvas = overlayCanvasRef.current;
+        if (canvas) canvas.style.cursor = 'grab';
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        isSpacePressedRef.current = false;
+        isPanningRef.current = false;
+        const canvas = overlayCanvasRef.current;
+        if (canvas) canvas.style.cursor = ''; 
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const onionCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastDrawnPixelRef = useRef<{ x: number, y: number } | null>(null);
@@ -490,6 +529,17 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button === 1 || isSpacePressedRef.current) {
+      e.preventDefault();
+      isPanningRef.current = true;
+      panStartRef.current = { clientX: e.clientX, clientY: e.clientY, panX: currentPanRef.current.x, panY: currentPanRef.current.y };
+      const canvas = overlayCanvasRef.current;
+      if (canvas) canvas.style.cursor = 'grabbing';
+      return;
+    }
+
+    if (e.button !== 0) return; // Only process left click for drawing/selecting
+
     const activeLayer = state.layers.find(l => l.id === activeLayerId);
     if (activeLayer?.isLocked) return;
 
@@ -532,6 +582,13 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isPanningRef.current && panStartRef.current && onPan) {
+      const dx = e.clientX - panStartRef.current.clientX;
+      const dy = e.clientY - panStartRef.current.clientY;
+      onPan({ x: panStartRef.current.panX + dx, y: panStartRef.current.panY + dy });
+      return;
+    }
+
     const rect = baseCanvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
@@ -624,6 +681,13 @@ export const CanvasLayered = React.memo(function CanvasLayered({
   };
 
   const handleMouseUp = () => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      const canvas = overlayCanvasRef.current;
+      if (canvas) canvas.style.cursor = isSpacePressedRef.current ? 'grab' : '';
+      return;
+    }
+
     if (isDrawingRef.current) {
       onPushHistory?.(); // Push the whole stroke to history!
       lastDrawnPixelRef.current = null; // Reset!
@@ -637,24 +701,51 @@ export const CanvasLayered = React.memo(function CanvasLayered({
     }
   };
 
-  // Handle wheel zoom
+  // Handle wheel zoom & pan
   useEffect(() => {
-    const canvas = baseCanvasRef.current;
-    if (!canvas || !onZoom) return;
+    const container = containerRef.current;
+    if (!container || !onZoom || !onPan) return;
     
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const delta = e.deltaY;
-      const zoomFactor = delta < 0 ? 1.1 : 0.9;
-      onZoom((prev: number) => Math.max(0.1, Math.min(10, prev * zoomFactor)));
+      
+      if (e.ctrlKey || e.metaKey) {
+        // ZOOM
+        const delta = e.deltaY;
+        const zoomFactor = delta < 0 ? 1.1 : 0.9;
+        
+        onZoom((prevZoom: number) => {
+          const newZoom = Math.max(0.1, Math.min(10, prevZoom * zoomFactor));
+          if (newZoom === prevZoom) return prevZoom;
+
+          const rect = container.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left - rect.width / 2;
+          const mouseY = e.clientY - rect.top - rect.height / 2;
+
+          const localX = (mouseX - currentPanRef.current.x) / prevZoom;
+          const localY = (mouseY - currentPanRef.current.y) / prevZoom;
+
+          const newPanX = mouseX - localX * newZoom;
+          const newPanY = mouseY - localY * newZoom;
+          
+          onPan({ x: newPanX, y: newPanY });
+          return newZoom;
+        });
+      } else {
+        // PAN
+        onPan((prevPan) => ({
+          x: prevPan.x - e.deltaX,
+          y: prevPan.y - e.deltaY
+        }));
+      }
     };
     
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-    return () => canvas.removeEventListener('wheel', handleWheel);
-  }, [onZoom]);
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [onZoom, onPan]);
 
   return (
-    <div className={`flex-1 min-h-0 flex items-center justify-center overflow-hidden relative ${darkMode ? 'bg-zinc-950' : 'bg-zinc-100'}`}>
+    <div ref={containerRef} className={`flex-1 min-h-0 flex items-center justify-center overflow-hidden relative ${darkMode ? 'bg-zinc-950' : 'bg-zinc-100'}`}>
       {/* Base Canvas */}
       <canvas
         ref={baseCanvasRef}
@@ -719,10 +810,6 @@ export const CanvasLayered = React.memo(function CanvasLayered({
         </div>
       )}
       
-      {/* Zoom Indicator */}
-      <div className="absolute bottom-4 right-4 bg-panel/80 backdrop-blur-sm border border-border px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-foreground shadow-lg pointer-events-none z-20">
-        {Math.round(zoom * 100)}%
-      </div>
     </div>
   );
 });

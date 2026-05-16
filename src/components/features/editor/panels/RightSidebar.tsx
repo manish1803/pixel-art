@@ -7,8 +7,6 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { AnimationState, findCel } from '@/lib/models/animation';
 import { useEffect, useRef, useState } from 'react';
 import { useEditorStore } from '@/hooks/useEditorStore';
-import { MiniMap } from './MiniMap';
-
 interface Frame {
   id: string | number;
   pixels: { [key: string]: string };
@@ -25,6 +23,7 @@ interface RightSidebarProps {
   // Layer Properties
   updateLayerOpacity: (layerId: string, opacity: number) => void;
   updateLayerBlendMode: (layerId: string, blendMode: GlobalCompositeOperation) => void;
+  onSaveTemplate?: () => void;
 }
 
 export function RightSidebar({
@@ -34,6 +33,7 @@ export function RightSidebar({
   state,
   updateLayerOpacity,
   updateLayerBlendMode,
+  onSaveTemplate,
 }: RightSidebarProps) {
   const {
     tool, setTool,
@@ -44,14 +44,12 @@ export function RightSidebar({
     activePalette,
     gridSize, setGridSize,
     onionSkin, setOnionSkin,
-    zoom, setZoom,
-    pan, setPan,
     isPlaying, fps,
     selectedLayerId
   } = useEditorStore();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [activeTab, setActiveTab] = useState<'tools' | 'studio'>('tools');
+  const [activeTab, setActiveTab] = useState<'tools' | 'preview'>('tools');
   const selectedLayer = state.layers.find(l => l.id === selectedLayerId);
 
   const [previewFrame, setPreviewFrame] = useState(0);
@@ -168,13 +166,13 @@ export function RightSidebar({
           Tools
         </button>
         <button
-          onClick={() => setActiveTab('studio')}
+          onClick={() => setActiveTab('preview')}
           onMouseUp={(e) => e.currentTarget.blur()}
           className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-            activeTab === 'studio' ? 'text-accent border-b-2 border-accent' : 'text-muted hover:text-foreground'
+            activeTab === 'preview' ? 'text-accent border-b-2 border-accent' : 'text-muted hover:text-foreground'
           }`}
         >
-          Studio
+          Preview
         </button>
       </div>
 
@@ -345,7 +343,7 @@ export function RightSidebar({
           </>
         )}
 
-        {activeTab === 'studio' && (
+        {activeTab === 'preview' && (
           <>
             {/* 2. PREVIEW */}
             <PanelSection title="Preview">
@@ -360,36 +358,7 @@ export function RightSidebar({
               </div>
             </PanelSection>
 
-            {/* 3. NAVIGATOR */}
-            <PanelSection title="Navigator">
-              <MiniMap
-                frames={frames}
-                currentFrame={currentFrame}
-                gridSize={gridSize}
-                zoom={zoom}
-                pan={pan}
-                setPan={setPan}
-                darkMode={darkMode}
-              />
-              <div className="flex items-center justify-between mt-3 px-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Zoom</span>
-                <div className="flex items-center border border-border bg-panel/50">
-                  <button 
-                    onClick={() => setZoom((prev: number) => Math.max(0.1, prev - 0.25))}
-                    className="w-6 h-6 flex items-center justify-center border-r border-border hover-accent text-xs font-bold"
-                  >
-                    -
-                  </button>
-                  <div className="px-3 text-[10px] font-mono font-bold min-w-[50px] text-center">{Math.round(zoom * 100)}%</div>
-                  <button 
-                    onClick={() => setZoom((prev: number) => Math.min(10, prev + 0.25))}
-                    className="w-6 h-6 flex items-center justify-center border-l border-border hover-accent text-xs font-bold"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </PanelSection>
+
 
             {/* 4. DOCUMENT */}
             <PanelSection title="Document">
@@ -402,6 +371,14 @@ export function RightSidebar({
                     onDecrement={() => setGridSize(Math.max(8, gridSize - 8))}
                   />
                 </div>
+                {onSaveTemplate && (
+                  <button 
+                    onClick={onSaveTemplate}
+                    className="w-full mt-2 px-4 py-2 border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-panel transition-colors"
+                  >
+                    Save as Template
+                  </button>
+                )}
               </div>
             </PanelSection>
 

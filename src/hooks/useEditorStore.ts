@@ -26,7 +26,7 @@ interface EditorState {
   zoom: number;
   setZoom: (zoom: number | ((prev: number) => number)) => void;
   pan: { x: number; y: number };
-  setPan: (pan: { x: number; y: number }) => void;
+  setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   onionSkin: boolean;
   setOnionSkin: (onionSkin: boolean | ((prev: boolean) => boolean)) => void;
 
@@ -82,7 +82,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   })),
   
   pan: { x: 0, y: 0 },
-  setPan: (pan) => set({ pan }),
+  setPan: (panAction) => set((state) => ({
+    pan: typeof panAction === 'function' ? panAction(state.pan) : panAction
+  })),
   
   onionSkin: false,
   setOnionSkin: (onionSkin) => set((state) => ({ onionSkin: typeof onionSkin === 'function' ? onionSkin(state.onionSkin) : onionSkin })),

@@ -757,10 +757,39 @@ function EditorContent() {
               mirrorMode={mirrorMode}
               onionSkin={onionSkin}
               onZoom={setZoom}
+              onPan={setPan}
               toyMode={toyMode}
               brushSize={brushSize}
               onPushHistory={pushHistory}
             />
+            {/* Inline Zoom Controls */}
+            <div className="absolute bottom-4 right-4 bg-panel/80 backdrop-blur-sm border border-border rounded flex items-center shadow-lg z-20 pointer-events-auto">
+              <button 
+                onClick={() => setZoom((prev: number) => Math.max(0.1, prev - 0.25))}
+                className="w-8 h-8 flex items-center justify-center border-r border-border hover:text-accent hover:bg-accent/10 transition-colors text-xs font-bold"
+              >
+                -
+              </button>
+              <div className="px-2 w-16">
+                <input 
+                  type="text"
+                  value={`${Math.round(zoom * 100)}%`}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) {
+                      setZoom(Math.max(0.1, Math.min(10, val / 100)));
+                    }
+                  }}
+                  className="w-full bg-transparent text-center text-[10px] font-mono font-bold focus:outline-none focus:text-accent"
+                />
+              </div>
+              <button 
+                onClick={() => setZoom((prev: number) => Math.min(10, prev + 0.25))}
+                className="w-8 h-8 flex items-center justify-center border-l border-border hover:text-accent hover:bg-accent/10 transition-colors text-xs font-bold"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {/* Timeline Toggle Divider */}
@@ -846,17 +875,12 @@ function EditorContent() {
               >
                 Export
               </button>
-              <div className="relative group">
-                <button
-                  className="px-4 py-2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest hover:bg-foreground/90 transition-colors flex items-center gap-1"
-                >
-                  <span className="w-2 h-2 bg-background rounded-full inline-block" /> Save <span>▼</span>
-                </button>
-                <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block bg-panel border border-border shadow-lg z-30">
-                  <button onClick={() => performSave({ isDraft: false })} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-panel transition-colors">Save Project</button>
-                  <button onClick={handleSaveAsTemplate} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-panel transition-colors">Save as Template</button>
-                </div>
-              </div>
+              <button
+                onClick={() => performSave({ isDraft: false })}
+                className="px-4 py-2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest hover:bg-foreground/90 transition-colors flex items-center gap-2"
+              >
+                <span className="w-2 h-2 bg-background rounded-full inline-block" /> SAVE PROJECT
+              </button>
             </div>
           </div>
         </div>
@@ -870,6 +894,7 @@ function EditorContent() {
             updateLayerOpacity={updateLayerOpacity}
             updateLayerBlendMode={updateLayerBlendMode}
             darkMode={darkMode}
+            onSaveTemplate={handleSaveAsTemplate}
           />
         </div>
       </div>
